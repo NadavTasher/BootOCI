@@ -2,7 +2,7 @@
 name = "bootcsi"
 version = "0.1.0"
 requires-python = ">= 3.8"
-description = "BootCSI is a simple command-line tool designed to convert CSI images to bootable ISO files using docker."
+description = "Convert CSI images to bootable ISO9660s using Docker and GRUB"
 readme = "README.md"
 license = {file = "LICENSE"}
 maintainers = [{name = "Nadav Tasher", email = "hey@nadav.app"}]
