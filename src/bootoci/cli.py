@@ -1,6 +1,6 @@
 import argparse
 
-from .csi_to_bootable import csi_to_bootable
+from .oci_to_bootable import oci_to_bootable
 
 
 def parse_arguments():
@@ -44,4 +44,4 @@ def parse_arguments():
 
 
 def main():
-    csi_to_bootable(**dict(parse_arguments()))
+    oci_to_bootable(**dict(parse_arguments()))

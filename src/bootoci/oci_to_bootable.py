@@ -5,7 +5,7 @@ import subprocess
 import jinja2
 
 
-def csi_to_bootable(*, output: str = None, serial: bool = None, docker: bool = None, podman: bool = None, dockerfile: str = None, tag: str = None, kernel_from_host: bool = None, kernel_from_source: bool = None, kernel_from_debian: bool = None, ash: bool = None, systemd: bool = None):
+def oci_to_bootable(*, output: str = None, serial: bool = None, docker: bool = None, podman: bool = None, dockerfile: str = None, tag: str = None, kernel_from_host: bool = None, kernel_from_source: bool = None, kernel_from_debian: bool = None, ash: bool = None, systemd: bool = None):
     # Decide which runtime we are using
     runtime = ["false"]
 

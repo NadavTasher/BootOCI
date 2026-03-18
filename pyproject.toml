@@ -13,7 +13,7 @@ classifiers = [
 dependencies = [
 	"jinja2",
 ]
-keywords = ["docker", "csi", "iso9660"]
+keywords = ["docker", "oci", "iso9660"]
 
 [project.urls]
 Homepage = "https://github.com/NadavTasher/BootOCI"
