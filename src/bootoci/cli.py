@@ -45,3 +45,8 @@ def parse_arguments():
 
 def main():
     oci_to_bootable(**dict(parse_arguments()))
+
+
+if __name__ == "__main__":
+    # Just call the main function
+    main()
