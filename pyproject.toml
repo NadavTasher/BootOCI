@@ -4,10 +4,9 @@ version = "0.1.0"
 requires-python = ">= 3.8"
 description = "Convert CSI images to bootable ISO9660s using Docker and GRUB"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "MIT"
 maintainers = [{name = "Nadav Tasher", email = "hey@nadav.app"}]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]
