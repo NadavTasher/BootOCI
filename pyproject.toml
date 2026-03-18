@@ -1,0 +1,38 @@
+[project]
+name = "bootcsi"
+version = "0.1.0"
+requires-python = ">= 3.8"
+description = "BootCSI is a simple command-line tool designed to convert CSI images to bootable ISO files using docker."
+readme = "README.md"
+license = {file = "LICENSE"}
+maintainers = [{name = "Nadav Tasher", email = "hey@nadav.app"}]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+	"jinja2",
+]
+keywords = ["docker", "csi", "iso9660"]
+
+[project.urls]
+Homepage = "https://github.com/NadavTasher/BootCSI"
+
+[project.scripts]
+bootcsi = "bootcsi.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+"*" = ["Dockerfile"]
+
+[tool.distutils.bdist_wheel]
+universal = false
+
+[tool.yapf]
+based_on_style = "google"
+column_limit = 400
+indent_width = 4
