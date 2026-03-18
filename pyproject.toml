@@ -1,8 +1,8 @@
 [project]
-name = "bootcsi"
+name = "bootoci"
 version = "0.1.0"
 requires-python = ">= 3.8"
-description = "Convert CSI images to bootable ISO9660s using Docker and GRUB"
+description = "Convert OCI images to bootable ISO9660s using Docker and GRUB"
 readme = "README.md"
 license = "MIT"
 maintainers = [{name = "Nadav Tasher", email = "hey@nadav.app"}]
@@ -16,10 +16,10 @@ dependencies = [
 keywords = ["docker", "csi", "iso9660"]
 
 [project.urls]
-Homepage = "https://github.com/NadavTasher/BootCSI"
+Homepage = "https://github.com/NadavTasher/BootOCI"
 
 [project.scripts]
-bootcsi = "bootcsi.cli:main"
+bootoci = "bootoci.cli:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
