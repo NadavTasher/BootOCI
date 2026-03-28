@@ -38,6 +38,22 @@ bootoci -o ./bin --docker --ash --kernel-from-source --tag debian:12
 bootoci -o ./bin --docker --ash --kernel-from-debian --tag ubuntu:24.04 --serial
 ```
 
-## Limitations
+## Testing images
 
-Currently, only `initrd` packing is supported. This essentially limits the image size supported. In the future, pivot root support will be added.
+```bash
+# Test for UEFI boot
+qemu-system-x86_64 -enable-kvm -m 2G -bios /usr/share/ovmf/OVMF.fd -drive file=./bin/image.raw,format=raw
+
+# Test for Legacy (BIOS) boot (not supported)
+# qemu-system-x86_64 -enable-kvm -m 2G -drive file=./bin/image.raw,format=raw
+```
+
+## TODO
+
+- [ ] Fix the `FROM rootfs AS rootfs` disaster
+- [ ] Podman (buildah) as build backend
+- [ ] init-is-systemd - Install systemd as /init
+- [ ] kernel-from-debian - Real, working, Debian kernel
+- [ ] kernel-from-nvidia - Kernel with nVidia drivers
+- [ ] Fix slow boot issue - Kernel takes a couple of seconds to start
+- [ ] Hybrid boot that supports Legacy and UEFI boot
