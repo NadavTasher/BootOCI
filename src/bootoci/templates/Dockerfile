@@ -1,16 +1,32 @@
-FROM {{ tag }} AS rootfs
+# Settings
+{% set bios_size = 1 %}
+{% set efi_size = 128 %}
+{% set rootfs_size = image_size - efi_size - 16 %}
+
+# Block to MB (1024 * 1024 / 512)
+{% set block_multiplier = 1024 * 2 %}
+
+# Calculate offsets
+{% set bios_offset = 1 * block_multiplier %}
+{% set efi_offset = bios_offset + bios_size * block_multiplier %}
+{% set rootfs_offset = efi_offset + efi_size * block_multiplier %}
+
+FROM {{rootfs_from_tag}} AS rootfs
 
 {% if kernel_from_source %}
-FROM debian:13 AS kernel-builder
+FROM {{internal_debian_image}} AS kernel-builder
 
 # Install build dependencies
 RUN apt update && \
-	apt install -y build-essential flex bison libelf-dev debhelper-compat bc cpio kmod libssl-dev libssl-dev rsync && \
+	apt install -y build-essential flex bison libelf-dev debhelper-compat bc cpio kmod libssl-dev libssl-dev rsync wget && \
 	rm -r /var/lib/apt/lists
-	
+
+# Change working directory to downloads
+WORKDIR /downloads
+
 # Add the kernel sources archive
-ADD https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.77.tar.xz /downloads/sources.tar.xz
-	
+RUN wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.77.tar.xz -O /downloads/sources.tar.xz
+
 # Change to build workdir
 WORKDIR /build/sources
 
@@ -29,124 +45,296 @@ WORKDIR /build
 # Install the packages to an alternative directory
 RUN dpkg --extract ./linux-image-*.deb /install
 
-FROM rootfs AS rootfs-with-kernel
+FROM rootfs AS rootfs
 
 # Copy artifacts from build stage
 COPY --from=kernel-builder /install/lib lib
 COPY --from=kernel-builder /install/boot boot
-
-FROM rootfs-with-kernel AS rootfs
 {% endif %}
 
 {% if kernel_from_debian %}
-FROM debian:13 AS kernel-fetcher
+FROM {{internal_debian_image}} AS kernel-fetcher
 
 # Download the latest linux image
 RUN apt update && \
-	apt install --download-only --yes linux-image-amd64 && \
+	apt install --yes linux-image-amd64 && \
 	rm -r /var/lib/apt/lists
 
-# Extract the linux image
-RUN dpkg --extract /var/cache/apt/archives/linux-image-*+*.deb /install
-
-FROM rootfs AS rootfs-with-kernel
+FROM rootfs AS rootfs
 
 # Copy artifacts from fetch stage
-COPY --from=kernel-fetcher /install/lib lib
-COPY --from=kernel-fetcher /install/boot boot
-
-FROM rootfs-with-kernel AS rootfs
+COPY --from=kernel-fetcher /boot boot
+COPY --from=kernel-fetcher /lib/modules lib/modules
 {% endif %}
 
-{% if ash %}
-FROM rootfs AS rootfs-with-ash
+{% if init_is_ash %}
+FROM rootfs AS rootfs
 
 # Get busybox from image
-COPY --from=busybox:1.37.0-musl /bin/busybox /busybox
+COPY --from={{internal_busybox_image}} /bin/busybox /bin/busybox
 
 # Create init file
 COPY --chmod=0755 <<EOF /init
-#!/busybox ash
+#!/bin/busybox ash
 
 # Just open a shell
-/busybox ash -i
+/bin/busybox ash -i
 EOF
-
-FROM rootfs-with-ash AS rootfs
 {% endif %}
 
-{% if systemd %}
-FROM debian:13 AS systemd-fetcher
+{% if init_is_login %}
+FROM rootfs AS rootfs
 
+# Get busybox from image
+COPY --from={{internal_busybox_image}} /bin/busybox /bin/busybox
+
+# Create init file
+COPY --chmod=0755 <<EOF /init
+#!/bin/busybox ash
+
+while true; do
+	# Prompt user to log in
+	/bin/busybox login
+done
+EOF
+{% endif %}
+
+{% if init_is_systemd %}
+FROM {{internal_debian_image}} AS systemd-builder
+
+# Enable sources in apt
+RUN sed -i 's/Types: deb/Types: deb deb-src/g' /etc/apt/sources.list.d/debian.sources
+
+# Install build dependencies
 RUN apt update && \
-	apt install -y systemd
+	apt install -y wget && \
+	apt build-dep -y systemd && \
+	rm -r /var/lib/apt/lists
 
-FROM rootfs AS rootfs-with-systemd
+# Change to build directory
+WORKDIR /build
+
+# Download systemd sources
+RUN wget -O systemd.tar.gz https://github.com/systemd/systemd/archive/refs/tags/v260.1.tar.gz
+
+# Extract sources
+RUN tar --strip-components=1 --extract --file systemd.tar.gz
+
+# Create build setup
+RUN meson build --prefix=/systemd/usr --sysconfdir=/systemd/etc --localstatedir=/systemd/var
+
+# Change to ninja directory
+WORKDIR /build/build
+
+# Actually build
+RUN ninja
+RUN ninja install
+
+FROM {{internal_debian_image}} as systemd-rootfs
+
+# Download sources
+RUN apt update && \
+	apt install -y libbpf1 dbus && \
+	rm -r /var/lib/apt/lists
+
+FROM rootfs AS rootfs
+
+# Copy the minimal rootfs for systemd
+COPY --from=systemd-rootfs / /systemd
 
 # Copy the actual systemd files
-COPY --from=systemd-fetcher / /systemd
+COPY --from=systemd-builder /systemd /systemd
 
-# Create an init file
+# Get busybox from image
+COPY --from={{internal_busybox_image}} /bin/busybox /systemd/busybox
 
+# Create init file
+COPY --chmod=0755 <<EOF /init
+#!/systemd/busybox ash
 
-FROM rootfs-with-systemd AS rootfs
+# Run systemd with custom loader
+exec /systemd/usr/bin/ld.so --library-path /systemd/lib:/systemd/lib/x86_64-linux-gnu /systemd/usr/lib/systemd/systemd
+EOF
 {% endif %}
 
-{% if password %}
+{% if rootfs_password %}
+FROM rootfs AS rootfs
 
+# Use busybox from external image to change password
+RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destination=/bin/busybox \
+	/bin/busybox echo "{{rootfs_password}}" | /bin/busybox chpasswd
 {% endif %}
 
-FROM debian:13 AS initrd-builder
+{% if rootfs_hostname %}
+FROM rootfs AS rootfs
+
+# Write the hostname to /etc/hostname
+COPY <<EOF /etc/hostname
+{{rootfs_hostname}}
+EOF
+
+# Write the hostname to /etc/hosts
+COPY <<EOF /etc/hosts
+127.0.0.1 localhost
+127.0.1.1 {{rootfs_hostname}}
+EOF
+{% endif %}
+
+FROM {{internal_debian_image}} AS bootfs
+
+# We need to add the boot script
+COPY --chmod=0755 <<EOF init
+#!/bin/sh
+
+# Exit on failure
+set -e
+
+# Create directories
+mkdir -p /proc /sys /dev /rootfs
+
+# Prepare /proc, /sys and /dev
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+
+# Mount the rootfs
+while ! mount -t ext4 PARTUUID="{{image_partuuid}}" /rootfs; do
+	sleep 1
+done
+
+# Switch root
+exec switch_root /rootfs /init
+EOF
+
+FROM {{internal_debian_image}} AS bootfs-builder
 
 # Install archiving utilties
 RUN apt update && \
 	apt install --yes cpio && \
 	rm -r /var/lib/apt/lists
 
-# Change to rootfs working directory
-WORKDIR /rootfs
+# Change to bootfs working directory
+WORKDIR /bootfs
 
-# Copy from the rootfs layer
+# Archive from the bootfs layer
+RUN --mount=type=bind,from=bootfs,source=/,destination=/bootfs \
+	find . | cpio --quiet -o -H newc > /boot/bootfs
+
+FROM {{internal_debian_image}} AS rootfs-builder
+
+# Install archiving utilties
+RUN apt update && \
+	apt install --yes e2fsprogs && \
+	rm -r /var/lib/apt/lists
+
+# Change to build directory
+WORKDIR /build
+
+# Create the partition file
+RUN truncate --size "{{rootfs_size}}M" rootfs
+
+# Archive from the rootfs layer
 RUN --mount=type=bind,from=rootfs,source=/,destination=/rootfs \
-	find . | cpio --quiet -o -H newc > /boot/initrd
+	mkfs.ext4 -d /rootfs -F rootfs
 
-FROM debian:13 AS iso-builder
+FROM {{internal_debian_image}} AS grub-builder
 
 # Install build dependencies
 RUN apt update && \
-	apt install --yes grub-pc-bin grub-efi-amd64-bin xorriso mtools && \
+	apt install --yes grub-pc-bin grub-efi-amd64-bin && \
 	rm -r /var/lib/apt/lists
 
-# Change to the build directory
-WORKDIR /iso
+# Change to working directory
+WORKDIR /build
+
+# Generate GRUB EFI image
+RUN grub-mkimage --format x86_64-efi --output grub.efi --prefix /boot/grub fat part_gpt linux normal
+
+FROM {{internal_debian_image}} AS efi-builder
+
+# Install build dependencies
+RUN apt update && \
+	apt install --yes mtools dosfstools && \
+	rm -r /var/lib/apt/lists
+
+# Change to build directory
+WORKDIR /build
+
+# Create EFI partition file
+RUN truncate --size "{{efi_size}}M" efi
+
+# Format EFI partition
+RUN mkfs.vfat -F 32 efi
+
+# Create EFI directories
+RUN mmd -i efi ::/EFI ::/EFI/BOOT ::/boot ::/boot/grub
+
+# Copy GRUB EFI image into EFI partition
+RUN --mount=type=bind,from=grub-builder,source=/build/grub.efi,destination=grub.efi \
+	mcopy -i efi grub.efi ::/EFI/BOOT/BOOTX64.EFI
 
 # Create GRUB configuration
-COPY <<EOF boot/grub/grub.cfg
+COPY <<EOF grub.cfg
 set timeout=5
 set default=0
 
-menuentry "Bootable '{{ tag }}' image" {
+menuentry "BootOCI - {{rootfs_from_tag}}" {
 	# Where is our kernel?
-	linux /boot/vmlinuz {% if serial %}console=ttyS0,115200{% endif %} loglevel=7
+	linux /boot/vmlinuz {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %}
 
-	# Where is our initramdisk?
-	initrd /boot/initrd
+	# We boot to bootfs
+	initrd /boot/bootfs
 }
 EOF
 
-# Copy the kernel files
-COPY --from=rootfs boot boot
+# Copy GRUB configuration into EFI partition
+RUN mcopy -i efi grub.cfg ::/boot/grub/grub.cfg
 
-# Kernel has to have a consistent name
-COPY --from=rootfs boot/vmlinuz* boot/vmlinuz
+# Copy kernel into EFI partition
+RUN --mount=type=bind,from=rootfs,source=/,destination=/rootfs \
+	mcopy -i efi /rootfs/boot/vmlinuz* ::/boot/vmlinuz
 
-# Copy the initramdisk
-COPY --from=initrd-builder boot/initrd boot/initrd
+# Copy bootfs (initrd) into EFI partition
+RUN --mount=type=bind,from=bootfs-builder,source=/boot/bootfs,destination=/bootfs \
+	mcopy -i efi /bootfs ::/boot/bootfs
 
-# Create the bootable ISO
-RUN grub-mkrescue -o /output.iso /iso
+FROM {{internal_debian_image}} AS image-builder
 
-FROM scratch AS iso
+# Install build dependencies
+RUN apt update && \
+	apt install --yes gdisk && \
+	rm -r /var/lib/apt/lists
+
+# Change to the build directory
+WORKDIR /build
+
+# Create the image file
+RUN truncate --size "{{image_size}}M" image.raw
+
+# Create partition table
+RUN sgdisk --zap-all --clear image.raw
+
+# # Create BIOS partition
+# RUN sgdisk --new="1:{{bios_offset}}:{{efi_offset - 1}}"	--typecode="1:ef02" image.raw
+
+# Create UEFI partition
+RUN sgdisk --new="2:{{efi_offset}}:{{rootfs_offset - 1}}" --typecode="2:ef00" image.raw
+
+# Create rootfs partition (full size - UEFI - BIOS - padding)
+RUN sgdisk --new="3:{{rootfs_offset}}:0" --typecode="3:8300" --partition-guid="3:{{image_partuuid}}" image.raw
+
+# Move second header to end of image
+RUN sgdisk --move-second-header image.raw
+
+# Write EFI partition to image
+RUN --mount=type=bind,from=efi-builder,source=/build/efi,destination=efi \
+	dd if=efi of=image.raw conv=notrunc bs=512 "seek={{efi_offset}}"
+
+# Write rootfs partition to image
+RUN --mount=type=bind,from=rootfs-builder,source=/build/rootfs,destination=rootfs \
+	dd if=rootfs of=image.raw conv=notrunc bs=512 "seek={{rootfs_offset}}"
+
+FROM scratch AS output
 
 # Copy the output ISO
-COPY --from=iso-builder /output.iso /
+COPY --from=image-builder /build/image.raw /
