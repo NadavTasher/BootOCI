@@ -10,7 +10,7 @@ BootOCI aims to create bootable ISO images from Docker images.
 
 This project exists because I wasn't satisfied with other solutions and I really like Docker.
 
-1. live-build - way to complicated, hard to keep track of changes
+1. live-build - way too complicated, hard to keep track of changes
 2. mkosi - never actually got it to work properly
 
 ## Installation
