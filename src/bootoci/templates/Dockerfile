@@ -1,6 +1,6 @@
 # Settings
 {% set bios_size = 1 %}
-{% set efi_size = 128 %}
+{% set efi_size = 256 %}
 {% set rootfs_size = image_size - efi_size - 16 %}
 
 # Block to MB (1024 * 1024 / 512)
@@ -25,13 +25,13 @@ RUN apt update && \
 WORKDIR /downloads
 
 # Add the kernel sources archive
-RUN wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.77.tar.xz -O /downloads/sources.tar.xz
+RUN wget -O /downloads/linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.77.tar.xz
 
 # Change to build workdir
 WORKDIR /build/sources
 
 # Extract sources
-RUN tar --strip-components=1 --extract --file /downloads/sources.tar.xz
+RUN tar --strip-components=1 --extract --file /downloads/linux.tar.xz
 
 # Create the default configuration
 RUN make defconfig
@@ -180,54 +180,41 @@ COPY <<EOF /etc/hosts
 EOF
 {% endif %}
 
-FROM {{internal_debian_image}} AS bootfs
-
-# We need to add the boot script
-COPY --chmod=0755 <<EOF init
-#!/bin/sh
-
-# Exit on failure
-set -e
-
-# Create directories
-mkdir -p /proc /sys /dev /rootfs
-
-# Prepare /proc, /sys and /dev
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
-mount -t devtmpfs devtmpfs /dev
-
 {% if boot_shell %}
+FROM rootfs AS rootfs
+
+# Copy busybox binary for init
+COPY --from={{internal_busybox_image}} /bin/busybox /bootoci/busybox
+
+# Move the real init binary
+RUN /bootoci/busybox mv init init.real
+
+# Write the new init script
+COPY --chmod=0755 <<EOF init
+#!/bootoci/busybox ash
+
 # Write the welcome message
 echo "BootOCI - boot paused before rootfs mount."
 echo " Enter 'exit' when you are ready to boot. "
 
 # Pause boot before mounting rootfs
-sh -i
-{% endif %}
+/bootoci/busybox ash -i
 
-# Mount the rootfs
-while ! mount -t ext4 PARTUUID="{{image_partuuid}}" /rootfs; do
-	sleep 1
-done
-
-# Switch root
-exec switch_root /rootfs /init
+# Execute the real init
+exec /init.real
 EOF
+{% endif %}
 
 FROM {{internal_debian_image}} AS bootfs-builder
 
 # Install archiving utilties
 RUN apt update && \
-	apt install --yes cpio && \
+	apt install --yes dracut && \
 	rm -r /var/lib/apt/lists
 
-# Change to bootfs working directory
-WORKDIR /bootfs
-
-# Archive from the bootfs layer
-RUN --mount=type=bind,from=bootfs,source=/,destination=/bootfs \
-	find . | cpio --quiet -o -H newc > /boot/bootfs
+# Create initrd using dracut
+RUN --mount=type=bind,from=rootfs,source=/,destination=/rootfs \
+	dracut --filesystems ext4 --modules "rootfs-block kernel-modules" --kmoddir /rootfs/lib/modules/* /boot/bootfs $(ls /rootfs/lib/modules)
 
 FROM {{internal_debian_image}} AS rootfs-builder
 
@@ -289,7 +276,7 @@ set default=0
 
 menuentry "BootOCI - {{rootfs_from_tag}}" {
 	# Where is our kernel?
-	linux /boot/vmlinuz {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %}
+	linux /boot/vmlinuz root=PARTUUID={{image_partuuid}} {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %}
 
 	# We boot to bootfs
 	initrd /boot/bootfs
