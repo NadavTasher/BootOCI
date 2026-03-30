@@ -197,6 +197,15 @@ mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev
 
+{% if boot_shell %}
+# Write the welcome message
+echo "BootOCI - boot paused before rootfs mount."
+echo " Enter 'exit' when you are ready to boot. "
+
+# Pause boot before mounting rootfs
+sh -i
+{% endif %}
+
 # Mount the rootfs
 while ! mount -t ext4 PARTUUID="{{image_partuuid}}" /rootfs; do
 	sleep 1

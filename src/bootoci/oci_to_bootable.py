@@ -21,6 +21,9 @@ def oci_to_bootable(
     # Partition UUID for rootfs
     image_partuuid: str = "00000000-0000-0000-0000-000000000000",
 
+    # Do we need a boot shell?
+    boot_shell: bool = False,
+
     # Do we boot in debug?
     boot_debug: bool = False,
 
@@ -117,6 +120,7 @@ def oci_to_bootable(
         image_partuuid=image_partuuid,
 
         # Boot options
+        boot_shell=boot_shell,
         boot_debug=boot_debug,
         boot_serial=boot_serial,
 

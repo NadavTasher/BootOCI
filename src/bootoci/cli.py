@@ -38,6 +38,9 @@ def parse_arguments():
     # Desired image size (affects rootfs size)
     parser.add_argument("--image-size", "--size", type=int, action="store", default=1024, help="Full image size in MB")
 
+    # Pause boot with shell before rootfs?
+    parser.add_argument("--boot-shell", "--pause", action="store_true", help="Pause the boot process before mounting rootfs")
+
     # Use debug for kernel boot?
     parser.add_argument("--boot-debug", "--debug", action="store_true", help="Boot kernel in debug mode")
 
