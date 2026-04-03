@@ -35,7 +35,7 @@ def parse_arguments():
     parser.add_argument("--image-partuuid", "--partuuid", action="store", default="00000000-0000-0000-0000-000000000000", help="Partition identifier for rootfs")
 
     # Desired image size (affects rootfs size)
-    parser.add_argument("--image-size", "--size", type=int, action="store", default=1024, help="Full image size in MB")
+    parser.add_argument("--image-size", "--size", "-s", type=int, action="store", default=1024, help="Full image size in MB")
 
     # Pause boot with shell before rootfs?
     parser.add_argument("--boot-shell", "--pause", action="store_true", help="Pause the boot process before mounting rootfs")
@@ -50,7 +50,7 @@ def parse_arguments():
     parser.add_argument("--rootfs-hostname", "--hostname", action="store", help="Hostname for system")
 
     # Change password in rootfs?
-    parser.add_argument("--rootfs-password", "--password", action="append", help="Password to set in USER:PASSWORD format")
+    parser.add_argument("--rootfs-password", "--password", "-p", action="append", help="Password to set in USER:PASSWORD format")
 
     # TODO --secure-boot forces --kernel-from-debian
 
