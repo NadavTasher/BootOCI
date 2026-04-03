@@ -59,8 +59,8 @@ FROM {{rootfs}} AS {{rootfs}}-with-upstream-kernel
 {% set rootfs = rootfs + "-with-upstream-kernel" %}
 
 # Copy artifacts from build stage
-COPY --from=kernel-builder /install/lib lib
-COPY --from=kernel-builder /install/boot boot
+COPY --from=kernel-builder /install/boot /boot
+COPY --from=kernel-builder /install/lib/modules /lib/modules
 {% endif %}
 
 {% if kernel_from_debian %}
@@ -77,8 +77,8 @@ FROM {{rootfs}} AS {{rootfs}}-with-debian-kernel
 {% set rootfs = rootfs + "-with-debian-kernel" %}
 
 # Copy artifacts from fetch stage
-COPY --from=kernel-fetcher /boot boot
-COPY --from=kernel-fetcher /lib/modules lib/modules
+COPY --from=kernel-fetcher /boot /boot
+COPY --from=kernel-fetcher /lib/modules /lib/modules
 {% endif %}
 
 {% if init_is_ash %}
