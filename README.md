@@ -42,7 +42,7 @@ bootoci -o ./bin --docker --ash --kernel-from-debian --tag ubuntu:24.04 --serial
 
 ```bash
 # Build a fully-fledged ubuntu desktop machine
-python3 -m src.bootoci.cli --docker --kernel-from-debian -f ./examples/ubuntu.Dockerfile --size 2048 --serial --password "root:12345678"
+python3 -m src.bootoci.cli --docker --kernel-from-debian -f ./examples/ubuntu.Dockerfile --size 4096 --serial --password "root:12345678"
 ```
 
 ## Testing images
