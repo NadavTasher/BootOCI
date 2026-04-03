@@ -11,15 +11,15 @@ def parse_arguments():
     # Output directory
     parser.add_argument("--output", "-o", action="store", default="bin", help="Output directory")
 
+    # Where does the rootfs come from?
+    rootfs_group = parser.add_argument_group()
+    rootfs_group.add_argument("--rootfs-from-tag", "--tag", "-t", action="store", help="Tag to build from")
+    rootfs_group.add_argument("--rootfs-from-dockerfile", "--dockerfile", "-f", action="store", help="Path to Dockerfile")
+    
     # How are we building this?
     backend_group = parser.add_mutually_exclusive_group(required=True)
     backend_group.add_argument("--backend-docker", "--docker", action="store_true", help="Use docker to build image")
     backend_group.add_argument("--backend-podman", "--podman", action="store_true", help="Use podman to build image")
-
-    # Where does the rootfs come from?
-    rootfs_group = parser.add_mutually_exclusive_group(required=True)
-    rootfs_group.add_argument("--rootfs-from-tag", "--tag", "-t", action="store", help="Tag to build from")
-    rootfs_group.add_argument("--rootfs-from-dockerfile", "--dockerfile", "-f", action="store", help="Path to Dockerfile")
 
     # Where does the kernel come from? Optional. Image can already have kernel.
     kernel_group = parser.add_mutually_exclusive_group(required=False)
@@ -56,6 +56,10 @@ def parse_arguments():
 
     # Parse the arguments
     arguments = parser.parse_args()
+
+    # Make sure at least of of the rootfs arguments were provided
+    if not arguments.rootfs_from_tag and not arguments.rootfs_from_dockerfile:
+        parser.error("At least one rootfs source is required (tag / dockerfile)")
 
     # Return the parsed arguments
     return arguments._get_kwargs()
