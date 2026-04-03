@@ -87,6 +87,9 @@ def oci_to_bootable(
 
         # Build the dockerfile
         subprocess.run(backend + ["buildx", "build", "--file", rootfs_from_dockerfile, "--tag", rootfs_from_tag, os.path.dirname(rootfs_from_dockerfile)], check=True)
+    else:
+        # Pull the image
+        subprocess.run(backend + ["pull", rootfs_from_tag])
 
     # We need to extract the rootfs information from the tag
     rootfs_configuration = json.loads(subprocess.run(backend + ["inspect", "--format", "{{json .Config}}", rootfs_from_tag], capture_output=True, text=True, check=True).stdout)
