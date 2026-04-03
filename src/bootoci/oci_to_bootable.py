@@ -1,4 +1,5 @@
 import os
+import json
 import hashlib
 import subprocess
 
@@ -60,6 +61,9 @@ def oci_to_bootable(
     # Are we using BusyBox login as the init program?
     init_is_login: bool = False,
 
+    # Are we using the image's original entrypoint as the init program?
+    init_is_entrypoint: bool = False,
+
     # Internal options
     internal_debian_image: str = "docker.io/library/debian:13-slim",
     internal_busybox_image: str = "docker.io/library/busybox:1.37.0-musl",
@@ -69,11 +73,11 @@ def oci_to_bootable(
 
     if backend_docker:
         # We are using docker as our backend
-        backend = ["docker", "buildx", "build"]
+        backend = ["docker"]
 
     if backend_podman:
         # We are using podman as our backend
-        backend = ["podman", "buildx", "build"]
+        backend = ["podman"]
 
     # Let's build the base image
     if rootfs_from_dockerfile:
@@ -82,7 +86,10 @@ def oci_to_bootable(
             rootfs_from_tag = "rootfs-" + os.urandom(4).hex()
 
         # Build the dockerfile
-        subprocess.run(backend + ["--file", rootfs_from_dockerfile, "--tag", rootfs_from_tag, os.path.dirname(rootfs_from_dockerfile)], check=True)
+        subprocess.run(backend + ["buildx", "build", "--file", rootfs_from_dockerfile, "--tag", rootfs_from_tag, os.path.dirname(rootfs_from_dockerfile)], check=True)
+
+    # We need to extract the rootfs information from the tag
+    rootfs_configuration = json.loads(subprocess.run(backend + ["inspect", "--format", "{{json .Config}}", rootfs_from_tag], capture_output=True, text=True, check=True).stdout)
 
     # Create jinja2 template
     with open(os.path.join(os.path.dirname(__file__), "templates", "Dockerfile"), "r", encoding="utf-8") as dockerfile:
@@ -90,6 +97,9 @@ def oci_to_bootable(
 
     # Render the template
     rendered_template = template.render(
+        # Add rootfs configuation
+        **rootfs_configuration,
+
         # At this point we already have a rootfs tag
         rootfs_from_tag=rootfs_from_tag,
 
@@ -104,6 +114,7 @@ def oci_to_bootable(
         # Init system selection
         init_is_ash=init_is_ash,
         init_is_login=init_is_login,
+        init_is_entrypoint=init_is_entrypoint,
 
         # Full image size
         image_size=image_size,
@@ -125,4 +136,4 @@ def oci_to_bootable(
     os.makedirs(output, exist_ok=True)
 
     # Now let's build the image
-    subprocess.run(backend + ["--file", "-", "--target", "output", "--output", output, "."], input=rendered_template, check=True, text=True)
+    subprocess.run(backend + ["buildx", "build", "--file", "-", "--target", "output", "--output", output, "."], input=rendered_template, check=True, text=True)

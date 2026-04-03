@@ -18,8 +18,9 @@
 
 FROM {{rootfs_from_tag}} AS {{rootfs}}
 
-# Change to root directory
-WORKDIR /
+# Create the /bootoci directory
+RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destination=/bin/busybox \
+	/bin/busybox mkdir -p /bootoci
 
 {% if kernel_from_source %}
 FROM {{internal_debian_image}} AS kernel-builder
@@ -108,17 +109,47 @@ FROM {{rootfs}} AS {{rootfs}}-with-login-as-init
 COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/ash
 COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/login
 
-# Change to /sbin
-WORKDIR /sbin
-
 # Create init file
-COPY --chmod=755 <<'EOF' init
+COPY --chmod=755 <<'EOF' /sbin/init
 #!/bootoci/ash
 
 while true; do
 	# Prompt user to log in
 	LOGIN_TIMEOUT=0 /bootoci/login
 done
+EOF
+{% endif %}
+
+{% if init_is_entrypoint %}
+FROM {{rootfs}} AS {{rootfs}}-with-entrypoint-as-init
+
+# Increment rootfs
+{% set rootfs = rootfs + "-with-entrypoint-as-init" %}
+
+# Get busybox from image
+COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/ash
+
+# Create workdir marker for entrypoint
+RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destination=/bin/busybox \
+	/bin/busybox ln -s $(/bin/busybox pwd) /bootoci/workdir
+
+# Create init file
+COPY --chmod=755 <<'EOF' /sbin/init
+#!/bootoci/ash
+
+# Exit on failure
+set -e
+
+# Enter original working directory
+cd -P /bootoci/workdir
+
+# Add environment variables
+{% for variable in Env %}
+export {{variable}}
+{% endfor %}
+
+# Execute entrypoint with cmd
+{{Entrypoint | join(" ")}} {{Cmd | join(" ")}}
 EOF
 {% endif %}
 
