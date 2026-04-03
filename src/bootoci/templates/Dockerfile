@@ -186,22 +186,27 @@ FROM rootfs AS rootfs
 # Copy busybox binary for init
 COPY --from={{internal_busybox_image}} /bin/busybox /bootoci/busybox
 
-# Move the real init binary
-RUN /bootoci/busybox mv init init.real
-
 # Write the new init script
-COPY --chmod=0755 <<EOF init
+COPY --chmod=0755 <<EOF /bootoci/init
 #!/bootoci/busybox ash
 
 # Write the welcome message
-echo "BootOCI - boot paused before rootfs mount."
-echo " Enter 'exit' when you are ready to boot. "
+cat <<BANNER
+
+===================================================
+| BootOCI - boot paused before calling real init. |
+|     Enter 'exit' when you are ready to boot     |
+===================================================
+
+BANNER
 
 # Pause boot before mounting rootfs
 /bootoci/busybox ash -i
 
-# Execute the real init
-exec /init.real
+# Execute real init
+for file in /init /sbin/init /etc/init /bin/init; do
+	test -x "\${file}" && exec "\${file}" \$@
+done
 EOF
 {% endif %}
 
@@ -276,7 +281,7 @@ set default=0
 
 menuentry "BootOCI - {{rootfs_from_tag}}" {
 	# Where is our kernel?
-	linux /boot/vmlinuz root=PARTUUID={{image_partuuid}} {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %}
+	linux /boot/vmlinuz root=PARTUUID={{image_partuuid}} {% if boot_shell %}init=/bootoci/init{% endif %} {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %}
 
 	# We boot to bootfs
 	initrd /boot/bootfs
