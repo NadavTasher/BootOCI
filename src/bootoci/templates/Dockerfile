@@ -144,9 +144,7 @@ set -e
 cd -P /bootoci/workdir
 
 # Add environment variables
-{% for variable in Env %}
-export {{variable}}
-{% endfor %}
+export {{Env | join(" ")}}
 
 # Execute entrypoint with cmd
 {{Entrypoint | join(" ")}} {{Cmd | join(" ")}}
