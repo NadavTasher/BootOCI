@@ -112,7 +112,7 @@ COPY --chmod=0755 <<EOF init
 
 while true; do
 	# Prompt user to log in
-	/bootoci/login
+	LOGIN_TIMEOUT=0 /bootoci/login
 done
 EOF
 {% endif %}
