@@ -46,11 +46,11 @@ def parse_arguments():
     # Use serial for kernel boot?
     parser.add_argument("--boot-serial", "--serial", action="store_true", help="Use serial for kernel boot")
 
-    # Change password in rootfs?
-    parser.add_argument("--rootfs-password", "--password", action="store", help="Password to set in USER:PASSWORD format")
-
     # Change hostname in rootfs?
     parser.add_argument("--rootfs-hostname", "--hostname", action="store", help="Hostname for system")
+
+    # Change password in rootfs?
+    parser.add_argument("--rootfs-password", "--password", action="append", help="Password to set in USER:PASSWORD format")
 
     # TODO --secure-boot forces --kernel-from-debian
 

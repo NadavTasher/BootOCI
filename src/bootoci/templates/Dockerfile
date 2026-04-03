@@ -123,9 +123,11 @@ FROM {{rootfs}} AS {{rootfs}}-with-passwords
 # Increment rootfs
 {% set rootfs = rootfs + "-with-passwords" %}
 
+{% for password in rootfs_password %}
 # Use busybox from external image to change password
 RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destination=/bin/busybox \
-	/bin/busybox echo "{{rootfs_password}}" | /bin/busybox chpasswd
+	/bin/busybox echo "{{password}}" | /bin/busybox chpasswd
+{% endfor %}
 {% endif %}
 
 {% if rootfs_hostname %}

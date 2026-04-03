@@ -30,11 +30,11 @@ def oci_to_bootable(
     # Do we boot to serial?
     boot_serial: bool = False,
 
-    # Do we set a rootfs password?
-    rootfs_password: Optional[str] = None,
-
     # Do we set a rootfs hostname?
     rootfs_hostname: Optional[str] = None,
+    
+    # Do we set a rootfs password?
+    rootfs_password: Optional[list[str]] = None,
 
     # Are we using docker as a backend?
     backend_docker: bool = True,
