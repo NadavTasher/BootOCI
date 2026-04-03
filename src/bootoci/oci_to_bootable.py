@@ -60,9 +60,6 @@ def oci_to_bootable(
     # Are we using BusyBox login as the init program?
     init_is_login: bool = False,
 
-    # Are we using systemd as the init program?
-    init_is_systemd: bool = False,
-
     # Internal options
     internal_debian_image: str = "docker.io/library/debian:13-slim",
     internal_busybox_image: str = "docker.io/library/busybox:1.37.0-musl",
@@ -77,10 +74,6 @@ def oci_to_bootable(
     if backend_podman:
         # We are using podman as our backend
         raise NotImplementedError("Podman isn't supported yet")
-
-    # SystemD init is not supported yet
-    if init_is_systemd:
-        raise NotImplementedError("SystemD isn't supported yet")
 
     # Let's build the base image
     if rootfs_from_dockerfile:
@@ -111,7 +104,6 @@ def oci_to_bootable(
         # Init system selection
         init_is_ash=init_is_ash,
         init_is_login=init_is_login,
-        init_is_systemd=init_is_systemd,
 
         # Full image size
         image_size=image_size,

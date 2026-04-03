@@ -59,7 +59,6 @@ qemu-system-x86_64 -enable-kvm -m 2G -bios /usr/share/ovmf/OVMF.fd -drive file=.
 
 - [ ] Fix the `FROM rootfs AS rootfs` disaster
 - [ ] Podman (buildah) as build backend
-- [ ] init-is-systemd - Install systemd as /init
 - [ ] kernel-from-nvidia - Kernel with nVidia drivers
 - [ ] Fix slow boot issue - Kernel takes a couple of seconds to start
 - [ ] Hybrid boot that supports Legacy and UEFI boot

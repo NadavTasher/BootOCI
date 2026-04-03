@@ -30,7 +30,6 @@ def parse_arguments():
     init_group = parser.add_mutually_exclusive_group(required=False)
     init_group.add_argument("--init-is-ash", "--ash", action="store_true", help="Boot to shell")
     init_group.add_argument("--init-is-login", "--login", action="store_true", help="Boot to login")
-    init_group.add_argument("--init-is-systemd", "--systemd", action="store_true", help="Boot to systemd")
 
     # GUID for rootfs partition
     parser.add_argument("--image-partuuid", "--partuuid", action="store", default="00000000-0000-0000-0000-000000000000", help="Partition identifier for rootfs")

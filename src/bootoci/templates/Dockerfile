@@ -99,64 +99,6 @@ done
 EOF
 {% endif %}
 
-{% if init_is_systemd %}
-FROM {{internal_debian_image}} AS systemd-builder
-
-# Enable sources in apt
-RUN sed -i 's/Types: deb/Types: deb deb-src/g' /etc/apt/sources.list.d/debian.sources
-
-# Install build dependencies
-RUN apt update && \
-	apt install -y wget && \
-	apt build-dep -y systemd && \
-	rm -r /var/lib/apt/lists
-
-# Change to build directory
-WORKDIR /build
-
-# Download systemd sources
-RUN wget -O systemd.tar.gz https://github.com/systemd/systemd/archive/refs/tags/v260.1.tar.gz
-
-# Extract sources
-RUN tar --strip-components=1 --extract --file systemd.tar.gz
-
-# Create build setup
-RUN meson build --prefix=/systemd/usr --sysconfdir=/systemd/etc --localstatedir=/systemd/var
-
-# Change to ninja directory
-WORKDIR /build/build
-
-# Actually build
-RUN ninja
-RUN ninja install
-
-FROM {{internal_debian_image}} as systemd-rootfs
-
-# Download sources
-RUN apt update && \
-	apt install -y libbpf1 dbus && \
-	rm -r /var/lib/apt/lists
-
-FROM rootfs AS rootfs
-
-# Copy the minimal rootfs for systemd
-COPY --from=systemd-rootfs / /systemd
-
-# Copy the actual systemd files
-COPY --from=systemd-builder /systemd /systemd
-
-# Get busybox from image
-COPY --from={{internal_busybox_image}} /bin/busybox /systemd/busybox
-
-# Create init file
-COPY --chmod=0755 <<EOF /init
-#!/systemd/busybox ash
-
-# Run systemd with custom loader
-exec /systemd/usr/bin/ld.so --library-path /systemd/lib:/systemd/lib/x86_64-linux-gnu /systemd/usr/lib/systemd/systemd
-EOF
-{% endif %}
-
 {% if rootfs_password %}
 FROM rootfs AS rootfs
 
