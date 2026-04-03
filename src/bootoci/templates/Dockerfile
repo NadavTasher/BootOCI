@@ -85,7 +85,7 @@ FROM {{rootfs}} AS {{rootfs}}-with-ash-as-init
 {% set rootfs = rootfs + "-with-ash-as-init" %}
 
 # Get busybox from image
-COPY --from={{internal_busybox_image}} --chmod=0755 /bin/busybox /bootoci/ash
+COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/ash
 
 # Change to /sbin
 WORKDIR /sbin
@@ -102,14 +102,14 @@ FROM {{rootfs}} AS {{rootfs}}-with-login-as-init
 {% set rootfs = rootfs + "-with-login-as-init" %}
 
 # Get busybox from image
-COPY --from={{internal_busybox_image}} --chmod=0755 /bin/busybox /bootoci/ash
-COPY --from={{internal_busybox_image}} --chmod=0755 /bin/busybox /bootoci/login
+COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/ash
+COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/login
 
 # Change to /sbin
 WORKDIR /sbin
 
 # Create init file
-COPY --chmod=0755 <<EOF init
+COPY --chmod=755 <<'EOF' init
 #!/bootoci/ash
 
 while true; do
@@ -139,12 +139,12 @@ FROM {{rootfs}} AS {{rootfs}}-with-hostname
 {% set rootfs = rootfs + "-with-hostname" %}
 
 # Write the hostname to /etc/hostname
-COPY <<EOF /etc/hostname
+COPY <<'EOF' /etc/hostname
 {{rootfs_hostname}}
 EOF
 
 # Write the hostname to /etc/hosts
-COPY <<EOF /etc/hosts
+COPY <<'EOF' /etc/hosts
 127.0.0.1 localhost
 127.0.1.1 {{rootfs_hostname}}
 EOF
@@ -157,11 +157,11 @@ FROM {{rootfs}} AS {{rootfs}}-with-boot-shell
 {% set rootfs = rootfs + "-with-boot-shell" %}
 
 # Copy busybox binary for init
-COPY --from={{internal_busybox_image}} --chmod=0755 /bin/busybox /bootoci/ash
-COPY --from={{internal_busybox_image}} --chmod=0755 /bin/busybox /bootoci/cat
+COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/ash
+COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/cat
 
 # Write the new init script
-COPY --chmod=0755 <<EOF /bootoci/init
+COPY --chmod=755 <<'EOF' /bootoci/init
 #!/bootoci/ash
 
 # Write the welcome message
@@ -179,7 +179,7 @@ BANNER
 
 # Execute real init
 for file in /init /sbin/init /etc/init /bin/init; do
-	[ -x "\${file}" ] && exec "\${file}" \$@
+	[ -x "${file}" ] && exec "${file}" $@
 done
 EOF
 {% endif %}
@@ -249,7 +249,7 @@ RUN --mount=type=bind,from=grub-builder,source=/build/grub.efi,destination=grub.
 	mcopy -i efi grub.efi ::/EFI/BOOT/BOOTX64.EFI
 
 # Create GRUB configuration
-COPY <<EOF grub.cfg
+COPY <<'EOF' grub.cfg
 set timeout=5
 set default=0
 
