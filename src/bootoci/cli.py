@@ -15,7 +15,7 @@ def parse_arguments():
     rootfs_group = parser.add_argument_group()
     rootfs_group.add_argument("--rootfs-from-tag", "--tag", "-t", action="store", help="Tag to build from")
     rootfs_group.add_argument("--rootfs-from-dockerfile", "--dockerfile", "-f", action="store", help="Path to Dockerfile")
-    
+
     # How are we building this?
     backend_group = parser.add_mutually_exclusive_group(required=True)
     backend_group.add_argument("--backend-docker", "--docker", action="store_true", help="Use docker to build image")

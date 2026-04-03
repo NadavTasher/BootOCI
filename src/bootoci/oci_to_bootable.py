@@ -32,7 +32,7 @@ def oci_to_bootable(
 
     # Do we set a rootfs hostname?
     rootfs_hostname: Optional[str] = None,
-    
+
     # Do we set a rootfs password?
     rootfs_password: Optional[list[str]] = None,
 
