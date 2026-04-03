@@ -18,6 +18,9 @@
 
 FROM {{rootfs_from_tag}} AS {{rootfs}}
 
+# Change to root directory
+WORKDIR /
+
 {% if kernel_from_source %}
 FROM {{internal_debian_image}} AS kernel-builder
 
