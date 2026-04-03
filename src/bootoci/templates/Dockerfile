@@ -11,7 +11,10 @@
 {% set efi_offset = bios_offset + bios_size * block_multiplier %}
 {% set rootfs_offset = efi_offset + efi_size * block_multiplier %}
 
-FROM {{rootfs_from_tag}} AS rootfs
+# Initialize rootfs name
+{% set rootfs = "rootfs" %}
+
+FROM {{rootfs_from_tag}} AS {{rootfs}}
 
 {% if kernel_from_source %}
 FROM {{internal_debian_image}} AS kernel-builder
@@ -45,7 +48,10 @@ WORKDIR /build
 # Install the packages to an alternative directory
 RUN dpkg --extract ./linux-image-*.deb /install
 
-FROM rootfs AS rootfs
+FROM {{rootfs}} AS {{rootfs}}-with-upstream-kernel
+
+# Increment rootfs
+{% set rootfs = rootfs + "-with-upstream-kernel" %}
 
 # Copy artifacts from build stage
 COPY --from=kernel-builder /install/lib lib
@@ -60,7 +66,10 @@ RUN apt update && \
 	apt install --yes linux-image-amd64 && \
 	rm -r /var/lib/apt/lists
 
-FROM rootfs AS rootfs
+FROM {{rootfs}} AS {{rootfs}}-with-debian-kernel
+
+# Increment rootfs
+{% set rootfs = rootfs + "-with-debian-kernel" %}
 
 # Copy artifacts from fetch stage
 COPY --from=kernel-fetcher /boot boot
@@ -68,39 +77,51 @@ COPY --from=kernel-fetcher /lib/modules lib/modules
 {% endif %}
 
 {% if init_is_ash %}
-FROM rootfs AS rootfs
+FROM {{rootfs}} AS {{rootfs}}-with-ash-as-init
+
+# Increment rootfs
+{% set rootfs = rootfs + "-with-ash-as-init" %}
 
 # Get busybox from image
-COPY --from={{internal_busybox_image}} /bin/busybox /bin/busybox
+COPY --from={{internal_busybox_image}} --chmod=0755 /bin/busybox /bootoci/ash
 
-# Create init file
-COPY --chmod=0755 <<EOF /init
-#!/bin/busybox ash
+# Change to /sbin
+WORKDIR /sbin
 
-# Just open a shell
-/bin/busybox ash -i
-EOF
+# Create link to ash
+RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destination=/bin/busybox \
+	/bin/busybox ln -f -s /bootoci/ash init 
 {% endif %}
 
 {% if init_is_login %}
-FROM rootfs AS rootfs
+FROM {{rootfs}} AS {{rootfs}}-with-login-as-init
+
+# Increment rootfs
+{% set rootfs = rootfs + "-with-login-as-init" %}
 
 # Get busybox from image
-COPY --from={{internal_busybox_image}} /bin/busybox /bin/busybox
+COPY --from={{internal_busybox_image}} --chmod=0755 /bin/busybox /bootoci/ash
+COPY --from={{internal_busybox_image}} --chmod=0755 /bin/busybox /bootoci/login
+
+# Change to /sbin
+WORKDIR /sbin
 
 # Create init file
-COPY --chmod=0755 <<EOF /init
-#!/bin/busybox ash
+COPY --chmod=0755 <<EOF init
+#!/bootoci/ash
 
 while true; do
 	# Prompt user to log in
-	/bin/busybox login
+	/bootoci/login
 done
 EOF
 {% endif %}
 
 {% if rootfs_password %}
-FROM rootfs AS rootfs
+FROM {{rootfs}} AS {{rootfs}}-with-passwords
+
+# Increment rootfs
+{% set rootfs = rootfs + "-with-passwords" %}
 
 # Use busybox from external image to change password
 RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destination=/bin/busybox \
@@ -108,7 +129,10 @@ RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destin
 {% endif %}
 
 {% if rootfs_hostname %}
-FROM rootfs AS rootfs
+FROM {{rootfs}} AS {{rootfs}}-with-hostname
+
+# Increment rootfs
+{% set rootfs = rootfs + "-with-hostname" %}
 
 # Write the hostname to /etc/hostname
 COPY <<EOF /etc/hostname
@@ -123,17 +147,21 @@ EOF
 {% endif %}
 
 {% if boot_shell %}
-FROM rootfs AS rootfs
+FROM {{rootfs}} AS {{rootfs}}-with-boot-shell
+
+# Increment rootfs
+{% set rootfs = rootfs + "-with-boot-shell" %}
 
 # Copy busybox binary for init
-COPY --from={{internal_busybox_image}} /bin/busybox /bootoci/busybox
+COPY --from={{internal_busybox_image}} --chmod=0755 /bin/busybox /bootoci/ash
+COPY --from={{internal_busybox_image}} --chmod=0755 /bin/busybox /bootoci/cat
 
 # Write the new init script
 COPY --chmod=0755 <<EOF /bootoci/init
-#!/bootoci/busybox ash
+#!/bootoci/ash
 
 # Write the welcome message
-cat <<BANNER
+/bootoci/cat <<BANNER
 
 ===================================================
 | BootOCI - boot paused before calling real init. |
@@ -143,11 +171,11 @@ cat <<BANNER
 BANNER
 
 # Pause boot before mounting rootfs
-/bootoci/busybox ash -i
+/bootoci/ash -i
 
 # Execute real init
 for file in /init /sbin/init /etc/init /bin/init; do
-	test -x "\${file}" && exec "\${file}" \$@
+	[ -x "\${file}" ] && exec "\${file}" \$@
 done
 EOF
 {% endif %}
@@ -160,7 +188,7 @@ RUN apt update && \
 	rm -r /var/lib/apt/lists
 
 # Create initrd using dracut
-RUN --mount=type=bind,from=rootfs,source=/,destination=/rootfs \
+RUN --mount=type=bind,from={{rootfs}},source=/,destination=/rootfs \
 	dracut --filesystems ext4 --modules "rootfs-block kernel-modules" --kmoddir /rootfs/lib/modules/* /boot/bootfs $(ls /rootfs/lib/modules)
 
 FROM {{internal_debian_image}} AS rootfs-builder
@@ -177,7 +205,7 @@ WORKDIR /build
 RUN truncate --size "{{rootfs_size}}M" rootfs
 
 # Archive from the rootfs layer
-RUN --mount=type=bind,from=rootfs,source=/,destination=/rootfs \
+RUN --mount=type=bind,from={{rootfs}},source=/,destination=/rootfs \
 	mkfs.ext4 -d /rootfs -F rootfs
 
 FROM {{internal_debian_image}} AS grub-builder
@@ -234,7 +262,7 @@ EOF
 RUN mcopy -i efi grub.cfg ::/boot/grub/grub.cfg
 
 # Copy kernel into EFI partition
-RUN --mount=type=bind,from=rootfs,source=/,destination=/rootfs \
+RUN --mount=type=bind,from={{rootfs}},source=/,destination=/rootfs \
 	mcopy -i efi /rootfs/boot/vmlinuz* ::/boot/vmlinuz
 
 # Copy bootfs (initrd) into EFI partition
