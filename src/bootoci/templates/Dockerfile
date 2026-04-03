@@ -184,7 +184,7 @@ FROM {{internal_debian_image}} AS grub-builder
 
 # Install build dependencies
 RUN apt update && \
-	apt install --yes grub-pc-bin grub-efi-amd64-bin && \
+	apt install --yes grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed && \
 	rm -r /var/lib/apt/lists
 
 # Change to working directory
