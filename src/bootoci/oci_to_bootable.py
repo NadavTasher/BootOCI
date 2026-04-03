@@ -83,7 +83,7 @@ def oci_to_bootable(
     if rootfs_from_dockerfile:
         # Generate tag if required
         if not rootfs_from_tag:
-            rootfs_from_tag = "rootfs-" + os.urandom(4).hex()
+            rootfs_from_tag = "rootfs-" + hashlib.md5(rootfs_from_dockerfile.encode("utf-8", errors="ignore")).hexdigest()
 
         # Build the dockerfile
         subprocess.run(backend + ["buildx", "build", "--file", rootfs_from_dockerfile, "--tag", rootfs_from_tag, os.path.dirname(rootfs_from_dockerfile)], check=True)
