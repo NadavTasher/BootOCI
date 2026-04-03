@@ -69,11 +69,11 @@ def oci_to_bootable(
 
     if backend_docker:
         # We are using docker as our backend
-        backend = ["docker"]
+        backend = ["docker", "buildx", "build"]
 
     if backend_podman:
         # We are using podman as our backend
-        raise NotImplementedError("Podman isn't supported yet")
+        backend = ["podman", "buildx", "build"]
 
     # Let's build the base image
     if rootfs_from_dockerfile:
@@ -82,7 +82,7 @@ def oci_to_bootable(
             rootfs_from_tag = "rootfs-" + os.urandom(4).hex()
 
         # Build the dockerfile
-        subprocess.run(backend + ["build", "--file", rootfs_from_dockerfile, "--tag", rootfs_from_tag, os.path.dirname(rootfs_from_dockerfile)], check=True)
+        subprocess.run(backend + ["--file", rootfs_from_dockerfile, "--tag", rootfs_from_tag, os.path.dirname(rootfs_from_dockerfile)], check=True)
 
     # Create jinja2 template
     with open(os.path.join(os.path.dirname(__file__), "templates", "Dockerfile"), "r", encoding="utf-8") as dockerfile:
@@ -125,4 +125,4 @@ def oci_to_bootable(
     os.makedirs(output, exist_ok=True)
 
     # Now let's build the image
-    subprocess.run(backend + ["build", "--file", "-", "--target", "output", "--output", output, "."], input=rendered_template, check=True, text=True)
+    subprocess.run(backend + ["--file", "-", "--target", "output", "--output", output, "."], input=rendered_template, check=True, text=True)
