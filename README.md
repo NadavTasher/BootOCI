@@ -1,17 +1,21 @@
 # BootOCI
 
-## Pronounciation
-
-It's pronounced `boot-os-ee`.
-
 ## What does it do?
 
-BootOCI aims to create bootable disk images from Docker images.
+BootOCI aims to create bootable disk images from OCI images (Docker container images).
+
+It leverages the build cache feature of buildx / buildah to create efficient and fast builds.
 
 This project exists because I wasn't satisfied with other solutions and I really like Docker.
 
 1. live-build - way too complicated, hard to keep track of changes
 2. mkosi - never actually got it to work properly
+
+## Tech stack
+
+- Build backend: [buildx](https://github.com/docker/buildx) or [buildah](https://github.com/containers/buildah)
+- Bootloader: [GRUB](https://www.gnu.org/software/grub/grub.html)
+- Initramfs: [dracut-ng](https://github.com/dracut-ng/dracut-ng)
 
 ## Installation
 
