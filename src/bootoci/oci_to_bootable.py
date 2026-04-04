@@ -144,8 +144,5 @@ def oci_to_bootable(
         internal_busybox_image=internal_busybox_image,
     )
 
-    # Create the output directory
-    os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
-
     # Now let's build the image
     subprocess.run(backend + ["buildx", "build", "--file", "-", "--target", "output", "--output", os.path.dirname(output_filepath), "."], input=rendered_template, check=True, text=True)
