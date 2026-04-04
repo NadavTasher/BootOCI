@@ -11,6 +11,9 @@ def parse_arguments():
     # Output directory
     parser.add_argument("--output-filepath", "--output", "-o", action="store", default="disk.img", help="Output directory")
 
+    # Only generate dockerfile
+    parser.add_argument("--generate-dockerfile", "--no-build", action="store_true", help="Don't build, only save the Dockerfile")
+
     # Where does the rootfs come from?
     rootfs_group = parser.add_argument_group()
     rootfs_group.add_argument("--rootfs-from-tag", "--tag", "-t", action="store", help="Tag to build from")

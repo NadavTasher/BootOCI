@@ -21,6 +21,9 @@ def oci_to_bootable(
     # Output file path
     output_filepath: str,
 
+    # Only generate a Dockerfile
+    generate_dockerfile: bool = False,
+
     # Full image size
     image_size: int = 1024,
 
@@ -150,6 +153,15 @@ def oci_to_bootable(
         internal_debian_image=internal_debian_image,
         internal_busybox_image=internal_busybox_image,
     )
+
+    # Should we just write the Dockerfile?
+    if generate_dockerfile:
+        # Write the dockerfile contents
+        with open(output_filepath, "w", encoding="utf-8") as dockerfile:
+            dockerfile.write(rendered_template)
+
+        # Don't build!
+        return
 
     # Now let's build the image
     subprocess.run(backend + ["buildx", "build", "--file", "-", "--target", "output", "--output", os.path.abspath(os.path.dirname(output_filepath)), "."], input=rendered_template, check=True, text=True)
