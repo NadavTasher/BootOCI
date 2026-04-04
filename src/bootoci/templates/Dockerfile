@@ -68,9 +68,14 @@ COPY --from=kernel-builder /install/lib/modules /lib/modules
 FROM {{internal_debian_image}} AS kernel-fetcher
 
 # Download the latest linux image
-RUN apt update && \
-	apt install --yes linux-image-amd64 && \
-	rm -r /var/lib/apt/lists
+RUN <<'EOF'
+# Exit on failure
+set -e
+
+apt update
+apt install --yes linux-image-amd64
+rm -r /var/lib/apt/lists
+EOF
 
 FROM {{rootfs}} AS {{rootfs}}-with-debian-kernel
 
@@ -197,7 +202,7 @@ COPY --chmod=755 <<'EOF' /bootoci/init
 #!/bootoci/ash
 
 # Write the welcome message
-/bootoci/cat <<BANNER
+/bootoci/cat <<'BANNER'
 
 ===================================================
 | BootOCI - boot paused before calling real init. |
@@ -216,72 +221,40 @@ done
 EOF
 {% endif %}
 
-FROM {{internal_debian_image}} AS bootfs-builder
+FROM {{internal_debian_image}} AS image-builder
 
-# Install archiving utilties
-RUN apt update && \
-	apt install --yes dracut && \
-	rm -r /var/lib/apt/lists
+# Install build dependencies
+RUN <<'EOF'
+# Exit on failure
+set -e
 
-# Create initrd using dracut
-RUN --mount=type=bind,from={{rootfs}},source=/,destination=/rootfs \
-	dracut --filesystems ext4 --modules "rootfs-block kernel-modules" --kmoddir /rootfs/lib/modules/* /boot/bootfs $(ls /rootfs/lib/modules)
-
-FROM {{internal_debian_image}} AS rootfs-builder
-
-# Install archiving utilties
-RUN apt update && \
-	apt install --yes e2fsprogs && \
-	rm -r /var/lib/apt/lists
+apt update
+apt install --yes gdisk dracut e2fsprogs mtools dosfstools grub-efi-amd64-bin grub-efi-amd64-signed
+rm -r /var/lib/apt/lists
+EOF
 
 # Change to build directory
 WORKDIR /build
+
+# Create the EFI partition
+RUN <<'EOF'
+# Exit on failure
+set -e
 
 # Create the partition file
-RUN truncate --size "{{rootfs_size}}M" rootfs
+truncate --size "{{efi_size}}M" efi
 
-# Archive from the rootfs layer
-RUN --mount=type=bind,from={{rootfs}},source=/,destination=/rootfs \
-	mkfs.ext4 -d /rootfs -F rootfs
-
-FROM {{internal_debian_image}} AS grub-builder
-
-# Install build dependencies
-RUN apt update && \
-	apt install --yes grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed && \
-	rm -r /var/lib/apt/lists
-
-# Change to working directory
-WORKDIR /build
-
-# Generate GRUB EFI image
-RUN grub-mkimage --format x86_64-efi --output grub.efi --prefix /boot/grub fat part_gpt linux normal
-
-FROM {{internal_debian_image}} AS efi-builder
-
-# Install build dependencies
-RUN apt update && \
-	apt install --yes mtools dosfstools && \
-	rm -r /var/lib/apt/lists
-
-# Change to build directory
-WORKDIR /build
-
-# Create EFI partition file
-RUN truncate --size "{{efi_size}}M" efi
-
-# Format EFI partition
-RUN mkfs.vfat -F 32 efi
+# Format the partition
+mkfs.vfat -F 32 efi
 
 # Create EFI directories
-RUN mmd -i efi ::/EFI ::/EFI/BOOT ::/boot ::/boot/grub
+mmd -i efi ::/EFI ::/EFI/BOOT ::/boot ::/boot/grub
 
-# Copy GRUB EFI image into EFI partition
-RUN --mount=type=bind,from=grub-builder,source=/build/grub.efi,destination=grub.efi \
-	mcopy -i efi grub.efi ::/EFI/BOOT/BOOTX64.EFI
+# Generate grub EFI image and copy it into the EFI partition
+grub-mkimage --format x86_64-efi --prefix /boot/grub fat part_gpt linux normal | mcopy -i efi - ::/EFI/BOOT/BOOTX64.EFI
 
-# Create GRUB configuration
-COPY <<'EOF' grub.cfg
+# Generate grub configuration and copy it into the EFI partition
+mcopy -i efi - ::/boot/grub/grub.cfg <<'CONFIGURATION'
 set timeout=5
 set default=0
 
@@ -289,59 +262,63 @@ menuentry "BootOCI - {{rootfs_from_tag}}" {
 	# Where is our kernel?
 	linux /boot/vmlinuz root=PARTUUID={{image_partuuid}} {% if boot_shell %}init=/bootoci/init{% endif %} {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %}
 
-	# We boot to bootfs
-	initrd /boot/bootfs
+	# Path to initrd
+	initrd /boot/initrd
 }
+CONFIGURATION
 EOF
 
-# Copy GRUB configuration into EFI partition
-RUN mcopy -i efi grub.cfg ::/boot/grub/grub.cfg
+RUN --mount=type=bind,from={{rootfs}},source=/,destination=/rootfs <<'EOF'
+# Exit on failure
+set -e
 
 # Copy kernel into EFI partition
-RUN --mount=type=bind,from={{rootfs}},source=/,destination=/rootfs \
-	mcopy -i efi /rootfs/boot/vmlinuz* ::/boot/vmlinuz
+mcopy -i efi /rootfs/boot/vmlinuz* ::/boot/vmlinuz
 
-# Copy bootfs (initrd) into EFI partition
-RUN --mount=type=bind,from=bootfs-builder,source=/boot/bootfs,destination=/bootfs \
-	mcopy -i efi /bootfs ::/boot/bootfs
+# Generate initrd using dracut
+dracut --filesystems ext4 --modules "rootfs-block kernel-modules" --kmoddir /rootfs/lib/modules/* initrd $(ls /rootfs/lib/modules)
 
-FROM {{internal_debian_image}} AS image-builder
+# Copy initrd into EFI partition
+mcopy -i efi initrd ::/boot/initrd
 
-# Install build dependencies
-RUN apt update && \
-	apt install --yes gdisk && \
-	rm -r /var/lib/apt/lists
+# Create the rootfs partition file
+truncate --size "{{rootfs_size}}M" rootfs
 
-# Change to the build directory
-WORKDIR /build
+# Format the partition and copy files
+mkfs.ext4 -d /rootfs -F rootfs
+EOF
+
+# Partition the disk
+RUN <<'EOF'
+# Exit on failure
+set -e
 
 # Create the image file
-RUN truncate --size "{{image_size}}M" image.raw
+truncate --size "{{image_size}}M" image
 
 # Create partition table
-RUN sgdisk --zap-all --clear image.raw
+sgdisk --zap-all --clear image
 
 # # Create BIOS partition
-# RUN sgdisk --new="1:{{bios_offset}}:{{efi_offset - 1}}"	--typecode="1:ef02" image.raw
+# sgdisk --new="1:{{bios_offset}}:{{efi_offset - 1}}"	--typecode="1:ef02" image
 
-# Create UEFI partition
-RUN sgdisk --new="2:{{efi_offset}}:{{rootfs_offset - 1}}" --typecode="2:ef00" image.raw
+# Create EFI partition
+sgdisk --new="2:{{efi_offset}}:{{rootfs_offset - 1}}" --typecode="2:ef00" image
 
-# Create rootfs partition (full size - UEFI - BIOS - padding)
-RUN sgdisk --new="3:{{rootfs_offset}}:0" --typecode="3:8300" --partition-guid="3:{{image_partuuid}}" image.raw
+# Create rootfs partition
+sgdisk --new="3:{{rootfs_offset}}:0" --typecode="3:8300" --partition-guid="3:{{image_partuuid}}" image
 
 # Move second header to end of image
-RUN sgdisk --move-second-header image.raw
+sgdisk --move-second-header image
 
 # Write EFI partition to image
-RUN --mount=type=bind,from=efi-builder,source=/build/efi,destination=efi \
-	dd if=efi of=image.raw conv=notrunc bs=512 "seek={{efi_offset}}"
+dd if=efi of=image conv=notrunc bs=512 "seek={{efi_offset}}"
 
 # Write rootfs partition to image
-RUN --mount=type=bind,from=rootfs-builder,source=/build/rootfs,destination=rootfs \
-	dd if=rootfs of=image.raw conv=notrunc bs=512 "seek={{rootfs_offset}}"
+dd if=rootfs of=image conv=notrunc bs=512 "seek={{rootfs_offset}}"
+EOF
 
 FROM scratch AS output
 
 # Copy the output ISO
-COPY --from=image-builder /build/image.raw /{{output_filename}}
+COPY --from=image-builder /build/image /{{output_filename}}
