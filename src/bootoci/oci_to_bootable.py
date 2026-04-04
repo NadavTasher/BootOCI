@@ -13,8 +13,8 @@ import jinja2
 def oci_to_bootable(
     *,
 
-    # Output directory
-    output: str,
+    # Output file path
+    output_filepath: str,
 
     # Full image size
     image_size: int = 1024,
@@ -104,6 +104,9 @@ def oci_to_bootable(
         # Add rootfs configuation
         **rootfs_configuration,
 
+        # Output filename
+        output_filename=os.path.basename(output_filepath),
+
         # At this point we already have a rootfs tag
         rootfs_from_tag=rootfs_from_tag,
 
@@ -137,7 +140,7 @@ def oci_to_bootable(
     )
 
     # Create the output directory
-    os.makedirs(output, exist_ok=True)
+    os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
 
     # Now let's build the image
-    subprocess.run(backend + ["buildx", "build", "--file", "-", "--target", "output", "--output", output, "."], input=rendered_template, check=True, text=True)
+    subprocess.run(backend + ["buildx", "build", "--file", "-", "--target", "output", "--output", os.path.dirname(output_filepath), "."], input=rendered_template, check=True, text=True)

@@ -9,7 +9,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Output directory
-    parser.add_argument("--output", "-o", action="store", default="bin", help="Output directory")
+    parser.add_argument("--output-filepath", "--output", "-o", action="store", default="disk.img", help="Output directory")
 
     # Where does the rootfs come from?
     rootfs_group = parser.add_argument_group()

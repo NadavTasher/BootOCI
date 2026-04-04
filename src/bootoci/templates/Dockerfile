@@ -344,4 +344,4 @@ RUN --mount=type=bind,from=rootfs-builder,source=/build/rootfs,destination=rootf
 FROM scratch AS output
 
 # Copy the output ISO
-COPY --from=image-builder /build/image.raw /
+COPY --from=image-builder /build/image.raw /{{output_filename}}

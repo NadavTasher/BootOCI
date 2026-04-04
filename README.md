@@ -29,16 +29,16 @@ To create a bootable Debian 12 image you can just:
 
 ```bash
 # Debian 12 disk with Debian 13 kernel
-bootoci -o ./bin --docker --ash --kernel-from-debian --tag debian:12 --size 1024
+bootoci -o ./bin/disk.img --docker --ash --kernel-from-debian --tag debian:12 --size 1024
 
 # Debian 12 disk with upstream kernel
-bootoci -o ./bin --docker --ash --kernel-from-source --tag debian:12 --size 1024
+bootoci -o ./bin/disk.img --docker --ash --kernel-from-source --tag debian:12 --size 1024
 
 # Ubuntu 24.04 disk with Debian 13 kernel (log to serial console)
-bootoci -o ./bin --docker --ash --kernel-from-debian --tag ubuntu:24.04 --serial
+bootoci -o ./bin/disk.img --docker --ash --kernel-from-debian --tag ubuntu:24.04 --serial
 
 # Debian 13 with GNOME, hostname and user password
-bootoci -o ./bin --docker --kernel-from-debian --tag debian-gnome --dockerfile ./examples/debian-gnome.Dockerfile --size 8192 --password root:12345678 --password user:12345678 --serial
+bootoci -o ./bin/disk.img --docker --kernel-from-debian --tag debian-gnome --dockerfile ./examples/debian-gnome.Dockerfile --size 8192 --password root:12345678 --password user:12345678 --serial
 ```
 
 ### Usage in development
