@@ -145,4 +145,4 @@ def oci_to_bootable(
     )
 
     # Now let's build the image
-    subprocess.run(backend + ["buildx", "build", "--file", "-", "--target", "output", "--output", os.path.dirname(output_filepath), "."], input=rendered_template, check=True, text=True)
+    subprocess.run(backend + ["buildx", "build", "--file", "-", "--target", "output", "--output", os.path.abspath(os.path.dirname(output_filepath)), "."], input=rendered_template, check=True, text=True)
