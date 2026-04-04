@@ -23,6 +23,7 @@ def parse_arguments():
 
     # Where does the kernel come from? Optional. Image can already have kernel.
     kernel_group = parser.add_mutually_exclusive_group(required=False)
+    kernel_group.add_argument("--kernel-from-name", action="store", help="Use an existing kernel by name (e.g. 6.8.0-40-lowlatency)")
     kernel_group.add_argument("--kernel-from-debian", action="store_true", help="Use debian's kernel")
     kernel_group.add_argument("--kernel-from-source", action="store_true", help="Build kernel from upstream source")
 

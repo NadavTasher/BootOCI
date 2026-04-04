@@ -54,6 +54,9 @@ def oci_to_bootable(
     # Tag that can be used as rootfs
     rootfs_from_tag: Optional[str] = None,
 
+    # Are we using a specific kernel that is already installed?
+    kernel_from_name: Optional[str] = None,
+
     # Are we using a kernel from debian?
     kernel_from_debian: bool = False,
 
@@ -122,6 +125,7 @@ def oci_to_bootable(
         rootfs_hostname=rootfs_hostname,
 
         # Kernel source selection
+        kernel_from_name=kernel_from_name,
         kernel_from_debian=kernel_from_debian,
         kernel_from_source=kernel_from_source,
 
