@@ -49,7 +49,7 @@ bootoci -o ./bin/disk.img --docker --kernel-from-debian --tag debian-gnome --doc
 
 ```bash
 # Build a fully-fledged ubuntu desktop machine
-python3 -m src.bootoci.cli --docker --kernel-from-debian -f ./examples/ubuntu.Dockerfile --size 4096 --serial --password "root:12345678"
+python3 -m src.bootoci.cli --docker --kernel-from-debian -f ./examples/ubuntu-desktop.Dockerfile --size 4096 --serial --password "root:12345678"
 ```
 
 ## Testing images
