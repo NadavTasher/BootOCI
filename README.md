@@ -27,22 +27,36 @@ Just run:
 pip install bootoci
 ```
 
-## Usage
+## Usage examples
 
-To create a bootable Debian 12 image you can just:
+Debian 12 that boots into a shell:
 
 ```bash
-# Debian 12 disk with Debian 13 kernel
 bootoci -o ./bin/disk.img --docker --ash --kernel-from-debian --tag debian:12 --size 1024
+```
 
-# Debian 12 disk with upstream kernel
+Debian 12 with an upstream kernel:
+
+```bash
 bootoci -o ./bin/disk.img --docker --ash --kernel-from-source --tag debian:12 --size 1024
+```
 
-# Ubuntu 24.04 disk with Debian 13 kernel (log to serial console)
+Ubuntu 24.04 with a serial ash shell:
+
+```bash
 bootoci -o ./bin/disk.img --docker --ash --kernel-from-debian --tag ubuntu:24.04 --serial
+```
 
-# Debian 13 with GNOME, hostname and user password
+Debian 13 with GNOME, hostname and user passwords:
+
+```bash
 bootoci -o ./bin/disk.img --docker --kernel-from-debian --tag debian-gnome --dockerfile ./examples/debian-gnome.Dockerfile --size 8192 --password root:12345678 --password user:12345678 --serial
+```
+
+Postgres server that starts on boot:
+
+```bash
+bootoci -o ./bin/disk.img --docker --kernel-from-debian --tag postgres --dockerfile ./examples/postgres-alpine.Dockerfile --size 1024 --entrypoint --serial
 ```
 
 ### Usage in development
