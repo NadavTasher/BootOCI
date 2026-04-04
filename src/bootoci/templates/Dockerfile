@@ -25,9 +25,14 @@ COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/busybox
 FROM {{internal_debian_image}} AS kernel-builder
 
 # Install build dependencies
-RUN apt update && \
-	apt install -y build-essential flex bison libelf-dev debhelper-compat bc cpio kmod libssl-dev libssl-dev rsync wget && \
-	rm -r /var/lib/apt/lists
+RUN <<'EOF'
+# Exit on failure
+set -ex
+
+apt update
+apt install --yes wget build-essential flex bison bc kmod libelf-dev libssl-dev
+rm -r /var/lib/apt/lists
+EOF
 
 # Change working directory to downloads
 WORKDIR /downloads
@@ -36,7 +41,7 @@ WORKDIR /downloads
 RUN wget -O /downloads/linux.tar.xz "{{internal_kernel_url}}"
 
 # Change to build workdir
-WORKDIR /build/sources
+WORKDIR /build/linux
 
 # Extract sources
 RUN tar --strip-components=1 --extract --file /downloads/linux.tar.xz
@@ -45,13 +50,7 @@ RUN tar --strip-components=1 --extract --file /downloads/linux.tar.xz
 RUN make defconfig
 
 # Execute the actual build
-RUN make -j$(nproc) bindeb-pkg
-
-# Change to the build output directory
-WORKDIR /build
-
-# Install the packages to an alternative directory
-RUN dpkg --extract ./linux-image-*.deb /install
+RUN make -j$(nproc) dir-pkg
 
 FROM {{rootfs}} AS {{rootfs}}-with-upstream-kernel
 
@@ -59,8 +58,8 @@ FROM {{rootfs}} AS {{rootfs}}-with-upstream-kernel
 {% set rootfs = rootfs + "-with-upstream-kernel" %}
 
 # Copy artifacts from build stage
-COPY --from=kernel-builder /install/boot /boot
-COPY --from=kernel-builder /install/lib/modules /lib/modules
+COPY --from=kernel-builder /build/linux/tar-install/boot /boot
+COPY --from=kernel-builder /build/linux/tar-install/lib/modules /lib/modules
 {% endif %}
 
 {% if kernel_from_debian %}
