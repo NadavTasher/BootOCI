@@ -96,12 +96,13 @@ FROM {{rootfs}} AS {{rootfs}}-with-ash-as-init
 # Get busybox from image
 COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/ash
 
-# Change to /sbin
-WORKDIR /sbin
+# Create init file
+COPY --chmod=755 <<'EOF' /sbin/init
+#!/bootoci/ash
 
-# Create link to ash
-RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destination=/bin/busybox \
-	/bin/busybox ln -f -s /bootoci/ash init 
+# Present user with shell
+exec /bootoci/ash -i
+EOF
 {% endif %}
 
 {% if init_is_login %}
