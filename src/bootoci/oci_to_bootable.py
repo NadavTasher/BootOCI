@@ -9,6 +9,10 @@ from typing import Optional
 # For template rendering
 import jinja2
 
+# Get internal defaults
+INTERNAL_DEBIAN_IMAGE = os.environ.get("BOOTOCI_DEBIAN_IMAGE", "docker.io/library/debian:13-slim")
+INTERNAL_BUSYBOX_IMAGE = os.environ.get("BOOTOCI_DEBIAN_IMAGE", "docker.io/library/busybox:1.37.0-musl")
+
 
 def oci_to_bootable(
     *,
@@ -65,8 +69,8 @@ def oci_to_bootable(
     init_is_entrypoint: bool = False,
 
     # Internal options
-    internal_debian_image: str = "docker.io/library/debian:13-slim",
-    internal_busybox_image: str = "docker.io/library/busybox:1.37.0-musl",
+    internal_debian_image: str = INTERNAL_DEBIAN_IMAGE,
+    internal_busybox_image: str = INTERNAL_BUSYBOX_IMAGE,
 ):
     # Decide which backend we are using
     backend = ["false"]
