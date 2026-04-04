@@ -1,20 +1,18 @@
 # syntax=docker/dockerfile:1
 
-# Settings
-{% set bios_size = 1 %}
-{% set efi_size = 256 %}
-{% set rootfs_size = image_size - efi_size - 16 %}
+# Partition sizes
+{%- set bios_size = 1 %}
+{%- set efi_size = 256 %}
+{%- set rootfs_size = image_size - efi_size - 16 %}
 
-# Block to MB (1024 * 1024 / 512)
-{% set block_multiplier = 1024 * 2 %}
-
-# Calculate offsets
-{% set bios_offset = 1 * block_multiplier %}
-{% set efi_offset = bios_offset + bios_size * block_multiplier %}
-{% set rootfs_offset = efi_offset + efi_size * block_multiplier %}
+# Calculate partition offsets
+{%- set block_multiplier = 1024 * 2 %}
+{%- set bios_offset = 1 * block_multiplier %}
+{%- set efi_offset = bios_offset + bios_size * block_multiplier %}
+{%- set rootfs_offset = efi_offset + efi_size * block_multiplier %}
 
 # Initialize rootfs name
-{% set rootfs = "rootfs" %}
+{%- set rootfs = "rootfs" %}
 
 FROM {{rootfs_from_tag}} AS {{rootfs}}
 
