@@ -9,7 +9,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Output directory
-    parser.add_argument("--output-filepath", "--output", "-o", action="store", default="disk.img", help="Output directory")
+    parser.add_argument("--output-filepath", "--output", "-o", action="store", default="disk.img", help="Output file path")
 
     # Only generate dockerfile
     parser.add_argument("--generate-dockerfile", "--no-build", action="store_true", help="Don't build, only save the Dockerfile")
