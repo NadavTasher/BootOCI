@@ -53,8 +53,6 @@ def parse_arguments():
     # Change password in rootfs?
     parser.add_argument("--rootfs-password", "--password", "-p", action="append", help="Password to set in USER:PASSWORD format")
 
-    # TODO --secure-boot forces --kernel-from-debian
-
     # Parse the arguments
     arguments = parser.parse_args()
 
