@@ -5,5 +5,5 @@ RUN apt update && \
 	apt install --yes systemd ubuntu-desktop-minimal && \
 	rm -r /var/lib/apt/lists
 
-# Create user
+# Create user because GNOME does not allow root login
 RUN adduser user
