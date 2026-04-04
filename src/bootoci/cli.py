@@ -42,6 +42,9 @@ def parse_arguments():
     # Desired image size (affects rootfs size)
     parser.add_argument("--image-size", "--size", "-s", type=int, action="store", default=1024, help="Full image size in MB")
 
+    # Desired image format
+    parser.add_argument("--image-format", "--format", action="store", choices=["qcow2", "vmdk"], help="Convert output image from raw disk image to another format")
+
     # Pause boot with shell before rootfs?
     parser.add_argument("--boot-shell", "--pause", action="store_true", help="Pause the boot process before mounting rootfs")
 

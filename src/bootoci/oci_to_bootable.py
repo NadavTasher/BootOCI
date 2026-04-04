@@ -27,6 +27,9 @@ def oci_to_bootable(
     # Full image size
     image_size: int = 1024,
 
+    # Final image format
+    image_format: Optional[str] = None,
+
     # Partition UUID for rootfs
     image_partuuid: str = "00000000-0000-0000-0000-000000000000",
 
@@ -139,6 +142,9 @@ def oci_to_bootable(
 
         # Full image size
         image_size=image_size,
+
+        # Final image format
+        image_format=image_format,
 
         # Partition PARTUUID
         image_partuuid=image_partuuid,

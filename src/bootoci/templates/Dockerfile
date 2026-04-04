@@ -232,7 +232,7 @@ RUN <<'EOF'
 set -e
 
 apt update
-apt install --yes gdisk dracut e2fsprogs mtools dosfstools grub-efi-amd64-bin grub-efi-amd64-signed
+apt install --yes gdisk dracut e2fsprogs mtools dosfstools grub-efi-amd64-bin grub-efi-amd64-signed qemu-utils
 rm -r /var/lib/apt/lists
 EOF
 
@@ -322,6 +322,14 @@ dd if=efi of=image conv=notrunc bs=512 "seek={{efi_offset}}"
 
 # Write rootfs partition to image
 dd if=rootfs of=image conv=notrunc bs=512 "seek={{rootfs_offset}}"
+
+{% if image_format %}
+# Format image from raw to output format
+qemu-img convert -f raw -O "{{image_format}}" image "image.{{image_format}}"
+
+# Replace the original image
+mv "image.{{image_format}}" image
+{% endif %}
 EOF
 
 FROM scratch AS output
