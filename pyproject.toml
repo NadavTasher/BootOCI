@@ -2,7 +2,7 @@
 name = "bootoci"
 version = "0.1.2"
 requires-python = ">= 3.8"
-description = "Convert OCI images to bootable ISO9660s using Docker and GRUB"
+description = "Convert OCI images to bootable disk images"
 readme = "README.md"
 license = "MIT"
 maintainers = [{name = "Nadav Tasher", email = "hey@nadav.app"}]
