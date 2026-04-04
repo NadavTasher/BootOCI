@@ -49,6 +49,19 @@ RUN tar --strip-components=1 --extract --file /downloads/linux.tar.xz
 # Create the default configuration
 RUN make defconfig
 
+# Patch the configuration to enable EFI framebuffer console
+RUN <<'EOF'
+cat <<'CONFIGURATION' >> .config
+CONFIG_FB=y
+CONFIG_FB_CORE=y
+CONFIG_FB_EFI=y
+CONFIG_FRAMEBUFFER_CONSOLE=y
+CONFIGURATION
+EOF
+
+# Fix the configuration
+RUN make olddefconfig
+
 # Execute the actual build
 RUN make -j$(nproc) dir-pkg
 
