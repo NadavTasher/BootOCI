@@ -34,7 +34,7 @@ RUN apt update && \
 WORKDIR /downloads
 
 # Add the kernel sources archive
-RUN wget -O /downloads/linux.tar.xz https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.77.tar.xz
+RUN wget -O /downloads/linux.tar.xz "{{internal_kernel_url}}"
 
 # Change to build workdir
 WORKDIR /build/sources
