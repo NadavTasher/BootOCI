@@ -47,10 +47,10 @@ Ubuntu 24.04 with a serial ash shell:
 bootoci -o ./bin/disk.img --docker --ash --kernel-from-debian --tag ubuntu:24.04 --serial
 ```
 
-Debian 13 with GNOME, hostname and user passwords:
+Debian 13 with GNOME, hostname and user passwords, in QCOW2 format:
 
 ```bash
-bootoci -o ./bin/disk.img --docker --kernel-from-debian --tag debian-gnome --dockerfile ./examples/debian-gnome.Dockerfile --size 8192 --password root:12345678 --password user:12345678 --serial
+bootoci -o ./bin/disk.img --docker --kernel-from-debian --tag debian-gnome --dockerfile ./examples/debian-gnome.Dockerfile --size 8192 --password root:12345678 --password user:12345678 --serial --format qcow2
 ```
 
 Postgres server that starts on boot:
