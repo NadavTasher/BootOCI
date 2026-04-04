@@ -78,6 +78,5 @@ qemu-system-x86_64 -enable-kvm -m 2G -bios /usr/share/ovmf/OVMF.fd -drive file=.
 
 ## TODO
 
-- [ ] kernel-from-nvidia - Kernel with nVidia drivers
 - [ ] Fix slow boot issue - Kernel takes a couple of seconds to start
 - [ ] Hybrid boot that supports Legacy and UEFI boot
