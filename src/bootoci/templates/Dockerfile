@@ -18,9 +18,8 @@
 
 FROM {{rootfs_from_tag}} AS {{rootfs}}
 
-# Create the /bootoci directory
-RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destination=/bin/busybox \
-	/bin/busybox mkdir -p /bootoci
+# Get busybox from image
+COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/busybox
 
 {% if kernel_from_source %}
 FROM {{internal_debian_image}} AS kernel-builder
@@ -93,15 +92,15 @@ FROM {{rootfs}} AS {{rootfs}}-with-ash-as-init
 # Increment rootfs
 {% set rootfs = rootfs + "-with-ash-as-init" %}
 
-# Get busybox from image
-COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/ash
+# Delete original /sbin/init file
+RUN /bootoci/busybox rm -f /sbin/init
 
 # Create init file
 COPY --chmod=755 <<'EOF' /sbin/init
-#!/bootoci/ash
+#!/bootoci/busybox ash
 
 # Present user with shell
-exec /bootoci/ash -i
+exec /bootoci/busybox ash -i
 EOF
 {% endif %}
 
@@ -111,17 +110,16 @@ FROM {{rootfs}} AS {{rootfs}}-with-login-as-init
 # Increment rootfs
 {% set rootfs = rootfs + "-with-login-as-init" %}
 
-# Get busybox from image
-COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/ash
-COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/login
+# Delete original /sbin/init file
+RUN /bootoci/busybox rm -f /sbin/init
 
 # Create init file
 COPY --chmod=755 <<'EOF' /sbin/init
-#!/bootoci/ash
+#!/bootoci/busybox ash
 
 while true; do
 	# Prompt user to log in
-	LOGIN_TIMEOUT=0 /bootoci/login
+	LOGIN_TIMEOUT=0 /bootoci/busybox login
 done
 EOF
 {% endif %}
@@ -132,16 +130,15 @@ FROM {{rootfs}} AS {{rootfs}}-with-entrypoint-as-init
 # Increment rootfs
 {% set rootfs = rootfs + "-with-entrypoint-as-init" %}
 
-# Get busybox from image
-COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/ash
-
 # Create workdir marker for entrypoint
-RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destination=/bin/busybox \
-	/bin/busybox ln -s $(/bin/busybox pwd) /bootoci/workdir
+RUN /bootoci/busybox ln -s $(/bootoci/busybox pwd) /bootoci/workdir
+
+# Delete original /sbin/init file
+RUN /bootoci/busybox rm -f /sbin/init
 
 # Create init file
 COPY --chmod=755 <<'EOF' /sbin/init
-#!/bootoci/ash
+#!/bootoci/busybox ash
 
 # Exit on failure
 set -e
@@ -165,8 +162,7 @@ FROM {{rootfs}} AS {{rootfs}}-with-passwords
 
 {% for password in rootfs_password %}
 # Use busybox from external image to change password
-RUN --mount=type=bind,from={{internal_busybox_image}},source=/bin/busybox,destination=/bin/busybox \
-	/bin/busybox echo "{{password}}" | /bin/busybox chpasswd
+RUN /bootoci/busybox echo "{{password}}" | /bootoci/busybox chpasswd
 {% endfor %}
 {% endif %}
 
@@ -194,16 +190,12 @@ FROM {{rootfs}} AS {{rootfs}}-with-boot-shell
 # Increment rootfs
 {% set rootfs = rootfs + "-with-boot-shell" %}
 
-# Copy busybox binary for init
-COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/ash
-COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/cat
-
 # Write the new init script
 COPY --chmod=755 <<'EOF' /bootoci/init
-#!/bootoci/ash
+#!/bootoci/busybox ash
 
 # Write the welcome message
-/bootoci/cat <<'BANNER'
+/bootoci/busybox cat <<'BANNER'
 
 ===================================================
 | BootOCI - boot paused before calling real init. |
@@ -213,11 +205,11 @@ COPY --chmod=755 <<'EOF' /bootoci/init
 BANNER
 
 # Pause boot before mounting rootfs
-/bootoci/ash -i
+/bootoci/busybox ash -i
 
 # Execute real init
 for file in /init /sbin/init /etc/init /bin/init; do
-	[ -x "${file}" ] && exec "${file}" $@
+	/bootoci/busybox test -x "${file}" && exec "${file}" $@
 done
 EOF
 {% endif %}
