@@ -271,7 +271,7 @@ kernel_name=$(basename -a /rootfs/lib/modules/{{kernel_from_name or '*'}} | sort
 mcopy -i efi "/rootfs/boot/vmlinuz-${kernel_name}" ::/boot/vmlinuz
 
 # Generate initrd using dracut
-dracut --reproducible --filesystems ext4 --modules "rootfs-block kernel-modules" --kmoddir "/rootfs/lib/modules/${kernel_name}" initrd "${kernel_name}"
+dracut --no-compress --reproducible --filesystems ext4 --modules "rootfs-block kernel-modules" --kmoddir "/rootfs/lib/modules/${kernel_name}" initrd "${kernel_name}"
 
 # Copy initrd into EFI partition
 mcopy -i efi initrd ::/boot/initrd
