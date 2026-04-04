@@ -70,13 +70,12 @@ python3 -m src.bootoci.cli --docker --kernel-from-debian -f ./examples/ubuntu-de
 
 ```bash
 # Test for UEFI boot
-qemu-system-x86_64 -enable-kvm -m 2G -bios /usr/share/ovmf/OVMF.fd -drive file=./bin/disk.img,format=raw
+qemu-system-x86_64 -enable-kvm -M q35 -m 2G -bios /usr/share/ovmf/OVMF.fd -drive file=./bin/disk.img,format=raw
 
 # Test for Legacy (BIOS) boot (not supported)
-# qemu-system-x86_64 -enable-kvm -m 2G -drive file=./bin/image.raw,format=raw
+# qemu-system-x86_64 -enable-kvm -M q35 -m 2G -drive file=./bin/image.raw,format=raw
 ```
 
 ## TODO
 
-- [ ] Fix slow boot issue - Kernel takes a couple of seconds to start
 - [ ] Hybrid boot that supports Legacy and UEFI boot
