@@ -1,0 +1,3 @@
+FROM postgres:16-alpine
+
+ENV POSTGRES_PASSWORD=12345678
