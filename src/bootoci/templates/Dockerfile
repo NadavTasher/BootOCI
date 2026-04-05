@@ -263,7 +263,7 @@ set default=0
 
 menuentry "BootOCI - {{rootfs_from_tag}}" {
 	# Where is our kernel?
-	linux /boot/vmlinuz root=PARTUUID={{image_partuuid}} {% if boot_shell %}init=/bootoci/init{% endif %} {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %}
+	linux /boot/vmlinuz {% if boot_cmdline %}{{boot_cmdline}}{% endif %} root=PARTUUID={{image_partuuid}} {% if boot_shell %}init=/bootoci/init{% endif %} {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %}
 
 	# Path to initrd
 	initrd /boot/initrd

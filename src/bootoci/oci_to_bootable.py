@@ -42,6 +42,9 @@ def oci_to_bootable(
     # Do we boot to serial?
     boot_serial: bool = False,
 
+    # Any additionall boot cmdline arguments?
+    boot_cmdline: Optional[str] = None,
+
     # Do we set a rootfs hostname?
     rootfs_hostname: Optional[str] = None,
 
@@ -153,6 +156,7 @@ def oci_to_bootable(
         boot_shell=boot_shell,
         boot_debug=boot_debug,
         boot_serial=boot_serial,
+        boot_cmdline=boot_cmdline,
 
         # Internal options
         internal_kernel_url=internal_kernel_url,
