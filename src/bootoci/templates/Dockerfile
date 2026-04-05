@@ -11,16 +11,8 @@
 {%- set efi_offset = bios_offset + bios_size * block_multiplier %}
 {%- set rootfs_offset = efi_offset + efi_size * block_multiplier %}
 
-# Initialize rootfs name
-{%- set rootfs = "rootfs" %}
-
-FROM {{rootfs_from_tag}} AS {{rootfs}}
-
-# Get busybox from image
-COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/busybox
-
 {% if kernel_from_source %}
-FROM {{internal_debian_image}} AS kernel-builder
+FROM {{internal_debian_image}} AS kernel-from-source
 
 # Install build dependencies
 RUN <<'EOF'
@@ -62,19 +54,10 @@ RUN make olddefconfig
 
 # Execute the actual build
 RUN make -j$(nproc) dir-pkg
-
-FROM {{rootfs}} AS {{rootfs}}-with-upstream-kernel
-
-# Increment rootfs
-{% set rootfs = rootfs + "-with-upstream-kernel" %}
-
-# Copy artifacts from build stage
-COPY --from=kernel-builder /build/linux/tar-install/boot /boot
-COPY --from=kernel-builder /build/linux/tar-install/lib/modules /lib/modules
 {% endif %}
 
 {% if kernel_from_debian %}
-FROM {{internal_debian_image}} AS kernel-fetcher
+FROM {{internal_debian_image}} AS kernel-from-debian
 
 # Download the latest linux image
 RUN <<'EOF'
@@ -85,23 +68,47 @@ apt update
 apt install --yes linux-image-amd64
 rm -r /var/lib/apt/lists
 EOF
+{% endif %}
 
-FROM {{rootfs}} AS {{rootfs}}-with-debian-kernel
+# Actually generate the rootfs
+FROM {{rootfs_from_tag}} AS rootfs
 
-# Increment rootfs
-{% set rootfs = rootfs + "-with-debian-kernel" %}
+# Get busybox from image
+COPY --from={{internal_busybox_image}} --chmod=755 /bin/busybox /bootoci/busybox
 
-# Copy artifacts from fetch stage
-COPY --from=kernel-fetcher /boot /boot
-COPY --from=kernel-fetcher /lib/modules /lib/modules
+{% if kernel_from_source %}
+# Install kernel artifacts from build stage
+COPY --from=kernel-from-source /build/linux/tar-install/boot /boot
+COPY --from=kernel-from-source /build/linux/tar-install/lib/modules /lib/modules
+{% endif %}
+
+{% if kernel_from_debian %}
+# Install kernel artifacts from fetch stage
+COPY --from=kernel-from-debian /boot /boot
+COPY --from=kernel-from-debian /lib/modules /lib/modules
+{% endif %}
+
+{% if rootfs_password %}
+{% for password in rootfs_password %}
+# Use busybox from external image to change password
+RUN /bootoci/busybox echo "{{password}}" | /bootoci/busybox chpasswd
+{% endfor %}
+{% endif %}
+
+{% if rootfs_hostname %}
+# Write the hostname to /etc/hostname
+COPY <<'EOF' /etc/hostname
+{{rootfs_hostname}}
+EOF
+
+# Write the hostname to /etc/hosts
+COPY <<'EOF' /etc/hosts
+127.0.0.1 localhost
+127.0.1.1 {{rootfs_hostname}}
+EOF
 {% endif %}
 
 {% if init_is_ash %}
-FROM {{rootfs}} AS {{rootfs}}-with-ash-as-init
-
-# Increment rootfs
-{% set rootfs = rootfs + "-with-ash-as-init" %}
-
 # Delete original /sbin/init file
 RUN /bootoci/busybox rm -f /sbin/init
 
@@ -115,11 +122,6 @@ EOF
 {% endif %}
 
 {% if init_is_login %}
-FROM {{rootfs}} AS {{rootfs}}-with-login-as-init
-
-# Increment rootfs
-{% set rootfs = rootfs + "-with-login-as-init" %}
-
 # Delete original /sbin/init file
 RUN /bootoci/busybox rm -f /sbin/init
 
@@ -135,11 +137,6 @@ EOF
 {% endif %}
 
 {% if init_is_entrypoint %}
-FROM {{rootfs}} AS {{rootfs}}-with-entrypoint-as-init
-
-# Increment rootfs
-{% set rootfs = rootfs + "-with-entrypoint-as-init" %}
-
 # Create workdir marker for entrypoint
 RUN /bootoci/busybox ln -s $(/bootoci/busybox pwd) /bootoci/workdir
 
@@ -164,42 +161,7 @@ export {{Env | join(" ")}}
 EOF
 {% endif %}
 
-{% if rootfs_password %}
-FROM {{rootfs}} AS {{rootfs}}-with-passwords
-
-# Increment rootfs
-{% set rootfs = rootfs + "-with-passwords" %}
-
-{% for password in rootfs_password %}
-# Use busybox from external image to change password
-RUN /bootoci/busybox echo "{{password}}" | /bootoci/busybox chpasswd
-{% endfor %}
-{% endif %}
-
-{% if rootfs_hostname %}
-FROM {{rootfs}} AS {{rootfs}}-with-hostname
-
-# Increment rootfs
-{% set rootfs = rootfs + "-with-hostname" %}
-
-# Write the hostname to /etc/hostname
-COPY <<'EOF' /etc/hostname
-{{rootfs_hostname}}
-EOF
-
-# Write the hostname to /etc/hosts
-COPY <<'EOF' /etc/hosts
-127.0.0.1 localhost
-127.0.1.1 {{rootfs_hostname}}
-EOF
-{% endif %}
-
 {% if boot_shell %}
-FROM {{rootfs}} AS {{rootfs}}-with-boot-shell
-
-# Increment rootfs
-{% set rootfs = rootfs + "-with-boot-shell" %}
-
 # Write the new init script
 COPY --chmod=755 <<'EOF' /bootoci/init
 #!/bootoci/busybox ash
@@ -271,7 +233,7 @@ menuentry "BootOCI - {{rootfs_from_tag}}" {
 CONFIGURATION
 EOF
 
-RUN --mount=type=bind,from={{rootfs}},source=/,destination=/rootfs <<'EOF'
+RUN --mount=type=bind,from=rootfs,source=/,destination=/rootfs <<'EOF'
 # Exit on failure
 set -e
 
