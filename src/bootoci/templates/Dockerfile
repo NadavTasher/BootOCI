@@ -17,7 +17,7 @@ RUN <<'EOF'
 # Exit on failure
 set -ex
 
-apt update
+apt --option='Acquire::Check-Valid-Until=false' update
 apt install --yes wget build-essential flex bison bc kmod libelf-dev libssl-dev
 rm -r /var/lib/apt/lists
 EOF
@@ -62,7 +62,7 @@ RUN <<'EOF'
 # Exit on failure
 set -e
 
-apt update
+apt --option='Acquire::Check-Valid-Until=false' update
 apt install --yes linux-image-amd64
 rm -r /var/lib/apt/lists
 EOF
@@ -191,7 +191,7 @@ RUN <<'EOF'
 # Exit on failure
 set -e
 
-apt update
+apt --option='Acquire::Check-Valid-Until=false' update
 apt install --yes gdisk dracut e2fsprogs mtools dosfstools grub-efi-amd64-bin grub-efi-amd64-signed qemu-utils
 rm -r /var/lib/apt/lists
 EOF
