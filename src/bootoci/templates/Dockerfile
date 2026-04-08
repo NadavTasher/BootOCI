@@ -18,7 +18,7 @@ RUN <<'EOF'
 set -ex
 
 apt --option='Acquire::Check-Valid-Until=false' update
-apt install --yes wget build-essential flex bison bc kmod libelf-dev libssl-dev
+apt install --yes xz-utils build-essential flex bison bc kmod libelf-dev libssl-dev --no-install-suggests --no-install-recommends
 rm -r /var/lib/apt/lists
 EOF
 
@@ -26,7 +26,7 @@ EOF
 WORKDIR /downloads
 
 # Add the kernel sources archive
-RUN wget -O /downloads/linux.tar.xz "{{internal_kernel_url}}"
+ADD "{{internal_kernel_url}}" /downloads/linux.tar.xz
 
 # Change to build workdir
 WORKDIR /build/linux
