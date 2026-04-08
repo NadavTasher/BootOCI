@@ -63,7 +63,7 @@ RUN <<'EOF'
 set -e
 
 apt --option='Acquire::Check-Valid-Until=false' update
-apt install --yes linux-image-amd64
+apt install --yes linux-image-amd64 --no-install-suggests --no-install-recommends
 rm -r /var/lib/apt/lists
 EOF
 {% endif %}
@@ -192,7 +192,7 @@ RUN <<'EOF'
 set -e
 
 apt --option='Acquire::Check-Valid-Until=false' update
-apt install --yes gdisk dracut e2fsprogs mtools dosfstools grub-efi-amd64-bin grub-efi-amd64-signed qemu-utils
+apt install --yes gdisk dracut e2fsprogs mtools dosfstools grub-efi-amd64-bin grub-efi-amd64-signed qemu-utils --no-install-suggests --no-install-recommends
 rm -r /var/lib/apt/lists
 EOF
 
