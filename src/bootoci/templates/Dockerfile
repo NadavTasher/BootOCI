@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # Partition sizes
 {%- set bios_size = 1 %}
 {%- set efi_size = 256 %}
