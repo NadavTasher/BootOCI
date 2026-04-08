@@ -11,6 +11,7 @@ import jinja2
 
 # Get internal defaults
 INTERNAL_KERNEL_URL = os.environ.get("BOOTOCI_KERNEL_URL", "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.77.tar.xz")
+INTERNAL_UBUNTU_IMAGE = os.environ.get("BOOTOCI_UBUNTU_IMAGE", "docker.io/library/ubuntu:24.04")
 INTERNAL_DEBIAN_IMAGE = os.environ.get("BOOTOCI_DEBIAN_IMAGE", "docker.io/library/debian:13-slim")
 INTERNAL_BUSYBOX_IMAGE = os.environ.get("BOOTOCI_BUSYBOX_IMAGE", "docker.io/library/busybox:1.37.0-musl")
 
@@ -66,6 +67,9 @@ def oci_to_bootable(
     # Are we using a specific kernel that is already installed?
     kernel_from_name: Optional[str] = None,
 
+    # Are we using a kernel from ubuntu?
+    kernel_from_ubuntu: bool = False,
+
     # Are we using a kernel from debian?
     kernel_from_debian: bool = False,
 
@@ -83,6 +87,7 @@ def oci_to_bootable(
 
     # Internal options
     internal_kernel_url: str = INTERNAL_KERNEL_URL,
+    internal_ubuntu_image: str = INTERNAL_UBUNTU_IMAGE,
     internal_debian_image: str = INTERNAL_DEBIAN_IMAGE,
     internal_busybox_image: str = INTERNAL_BUSYBOX_IMAGE,
 ):
@@ -135,6 +140,7 @@ def oci_to_bootable(
 
         # Kernel source selection
         kernel_from_name=kernel_from_name,
+        kernel_from_ubuntu=kernel_from_ubuntu,
         kernel_from_debian=kernel_from_debian,
         kernel_from_source=kernel_from_source,
 
@@ -160,6 +166,7 @@ def oci_to_bootable(
 
         # Internal options
         internal_kernel_url=internal_kernel_url,
+        internal_ubuntu_image=internal_ubuntu_image,
         internal_debian_image=internal_debian_image,
         internal_busybox_image=internal_busybox_image,
     )

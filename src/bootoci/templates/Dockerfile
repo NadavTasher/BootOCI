@@ -68,6 +68,20 @@ rm -r /var/lib/apt/lists
 EOF
 {% endif %}
 
+{% if kernel_from_ubuntu %}
+FROM {{internal_ubuntu_image}} AS kernel-from-ubuntu
+
+# Download the latest linux image
+RUN <<'EOF'
+# Exit on failure
+set -e
+
+apt --option='Acquire::Check-Valid-Until=false' update
+apt install --yes linux-image-generic --no-install-suggests --no-install-recommends
+rm -r /var/lib/apt/lists
+EOF
+{% endif %}
+
 # Actually generate the rootfs
 FROM {{rootfs_from_tag}} AS rootfs
 
@@ -84,6 +98,12 @@ COPY --from=kernel-from-source /build/linux/tar-install/lib/modules /lib/modules
 # Install kernel artifacts from fetch stage
 COPY --from=kernel-from-debian /boot /boot
 COPY --from=kernel-from-debian /lib/modules /lib/modules
+{% endif %}
+
+{% if kernel_from_ubuntu %}
+# Install kernel artifacts from fetch stage
+COPY --from=kernel-from-ubuntu /boot /boot
+COPY --from=kernel-from-ubuntu /lib/modules /lib/modules
 {% endif %}
 
 {% if rootfs_password %}
