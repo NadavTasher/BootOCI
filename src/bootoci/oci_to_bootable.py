@@ -12,7 +12,7 @@ import jinja2
 # Get internal defaults
 INTERNAL_KERNEL_URL = os.environ.get("BOOTOCI_KERNEL_URL", "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.77.tar.xz")
 INTERNAL_DEBIAN_IMAGE = os.environ.get("BOOTOCI_DEBIAN_IMAGE", "docker.io/library/debian:13-slim")
-INTERNAL_BUSYBOX_IMAGE = os.environ.get("BOOTOCI_DEBIAN_IMAGE", "docker.io/library/busybox:1.37.0-musl")
+INTERNAL_BUSYBOX_IMAGE = os.environ.get("BOOTOCI_BUSYBOX_IMAGE", "docker.io/library/busybox:1.37.0-musl")
 
 
 def oci_to_bootable(
