@@ -171,11 +171,13 @@ set -e
 # Enter original working directory
 cd -P /bootoci/workdir
 
+{% if Env %}
 # Add environment variables
 export {{Env | join(" ")}}
+{% endif %}
 
 # Execute entrypoint with cmd
-{{Entrypoint | join(" ")}} {{Cmd | join(" ")}}
+exec {{((Entrypoint or []) + (Cmd or [])) | join(" ")}}
 EOF
 {% endif %}
 
