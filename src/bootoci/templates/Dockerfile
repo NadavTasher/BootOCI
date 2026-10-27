@@ -156,7 +156,7 @@ EOF
 
 {% if init_is_entrypoint %}
 # Create workdir marker for entrypoint
-RUN /bootoci/busybox ln -s $(/bootoci/busybox pwd) /bootoci/workdir
+RUN /bootoci/busybox ln -s "$(/bootoci/busybox pwd)" /bootoci/workdir
 
 # Delete original /sbin/init file
 RUN /bootoci/busybox rm -f /sbin/init
@@ -258,7 +258,7 @@ RUN --mount=type=bind,from=rootfs,source=/,destination=/rootfs <<'EOF'
 set -e
 
 # Decide kernel name
-kernel_name=$(basename -a /rootfs/lib/modules/{{kernel_from_name or '*'}} | sort | tail -1)
+kernel_name="$(basename -a /rootfs/lib/modules/{{kernel_from_name or '*'}} | sort | tail -1)"
 
 # Copy kernel into EFI partition
 mcopy -i efi "/rootfs/boot/vmlinuz-${kernel_name}" ::/boot/vmlinuz
