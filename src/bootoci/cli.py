@@ -8,6 +8,9 @@ def parse_arguments():
     # Create argument parser
     parser = argparse.ArgumentParser()
 
+    # Don't use backend caches
+    parser.add_argument("--no-cache", action="store_true", help="Don't use backend cache and don't store caches")
+
     # Output directory
     parser.add_argument("--output-filepath", "--output", "-o", action="store", default="disk.img", help="Output file path")
 

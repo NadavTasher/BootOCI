@@ -19,6 +19,9 @@ INTERNAL_BUSYBOX_IMAGE = os.environ.get("BOOTOCI_BUSYBOX_IMAGE", "docker.io/libr
 def oci_to_bootable(
     *,
 
+    # Disable usage of caches
+    no_cache: bool = False,
+
     # Output file path
     output_filepath: str,
 
@@ -102,6 +105,13 @@ def oci_to_bootable(
         # We are using podman as our backend
         backend = ["podman"]
 
+    # Cache options for image build
+    cache = []
+
+    if no_cache:
+        # We don't want to use the cache
+        cache = ["--no-cache"]
+
     # Let's build the base image
     if rootfs_from_dockerfile:
         # Generate tag if required
@@ -109,7 +119,7 @@ def oci_to_bootable(
             rootfs_from_tag = "rootfs-" + hashlib.md5(rootfs_from_dockerfile.encode("utf-8", errors="ignore")).hexdigest()
 
         # Build the dockerfile
-        subprocess.run(backend + ["buildx", "build", "--file", rootfs_from_dockerfile, "--tag", rootfs_from_tag, os.path.dirname(rootfs_from_dockerfile)], check=True)
+        subprocess.run(backend + ["buildx", "build", "--file", rootfs_from_dockerfile, "--tag", rootfs_from_tag] + cache + [os.path.dirname(rootfs_from_dockerfile)], check=True)
     else:
         # Check whether the image exists
         if not subprocess.run(backend + ["image", "ls", "--quiet", rootfs_from_tag], capture_output=True, check=True).stdout:
@@ -181,4 +191,4 @@ def oci_to_bootable(
         return
 
     # Now let's build the image
-    subprocess.run(backend + ["buildx", "build", "--file", "-", "--target", "output", "--output", os.path.abspath(os.path.dirname(output_filepath)), "."], input=rendered_template, check=True, text=True)
+    subprocess.run(backend + ["buildx", "build", "--file", "-", "--target", "output", "--output", os.path.abspath(os.path.dirname(output_filepath))] + cache + ["."], input=rendered_template, check=True, text=True)
