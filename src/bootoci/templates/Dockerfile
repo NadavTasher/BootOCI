@@ -62,6 +62,7 @@ RUN <<'EOF'
 # Exit on failure
 set -e
 
+# Install kernel
 apt --option='Acquire::Check-Valid-Until=false' update
 apt install --yes linux-image-amd64 --no-install-suggests --no-install-recommends
 rm -r /var/lib/apt/lists
@@ -76,6 +77,7 @@ RUN <<'EOF'
 # Exit on failure
 set -e
 
+# Install kernel
 apt --option='Acquire::Check-Valid-Until=false' update
 apt install --yes linux-image-generic --no-install-suggests --no-install-recommends
 rm -r /var/lib/apt/lists
