@@ -84,6 +84,26 @@ rm -r /var/lib/apt/lists
 EOF
 {% endif %}
 
+{% if kernel_from_fedora %}
+FROM {{internal_fedora_image}} AS kernel-from-fedora
+
+# Download the latest linux image
+RUN <<'EOF'
+# Exit on failure
+set -e
+
+# Install kernel
+dnf install -y --setopt=install_weak_deps=False kernel
+dnf clean all
+
+# Decide kernel name
+kernel_name="$(basename -a /lib/modules/* | sort | tail -1)"
+
+# Move kernel image
+mv "/lib/modules/${kernel_name}/vmlinuz" "/boot/vmlinuz-${kernel_name}"
+EOF
+{% endif %}
+
 # Actually generate the rootfs
 FROM {{rootfs_from_tag}} AS rootfs
 
@@ -106,6 +126,12 @@ COPY --from=kernel-from-debian /lib/modules /lib/modules
 # Install kernel artifacts from fetch stage
 COPY --from=kernel-from-ubuntu /boot /boot
 COPY --from=kernel-from-ubuntu /lib/modules /lib/modules
+{% endif %}
+
+{% if kernel_from_fedora %}
+# Install kernel artifacts from fetch stage
+COPY --from=kernel-from-fedora /boot /boot
+COPY --from=kernel-from-fedora /lib/modules /lib/modules
 {% endif %}
 
 {% if rootfs_password %}

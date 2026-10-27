@@ -12,6 +12,7 @@ import jinja2
 
 # Get internal defaults
 INTERNAL_KERNEL_URL = os.environ.get("BOOTOCI_KERNEL_URL", "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.13.tar.xz")
+INTERNAL_FEDORA_IMAGE = os.environ.get("BOOTOCI_FEDORA_IMAGE", "docker.io/library/fedora:44")
 INTERNAL_UBUNTU_IMAGE = os.environ.get("BOOTOCI_UBUNTU_IMAGE", "docker.io/library/ubuntu:26.04")
 INTERNAL_DEBIAN_IMAGE = os.environ.get("BOOTOCI_DEBIAN_IMAGE", "docker.io/library/debian:13-slim")
 INTERNAL_BUSYBOX_IMAGE = os.environ.get("BOOTOCI_BUSYBOX_IMAGE", "docker.io/library/busybox:1.38.0-musl")
@@ -71,6 +72,9 @@ def oci_to_bootable(
     # Are we using a specific kernel that is already installed?
     kernel_from_name: Optional[str] = None,
 
+    # Are we using a kernel from fedora?
+    kernel_from_fedora: bool = False,
+
     # Are we using a kernel from ubuntu?
     kernel_from_ubuntu: bool = False,
 
@@ -91,6 +95,7 @@ def oci_to_bootable(
 
     # Internal options
     internal_kernel_url: str = INTERNAL_KERNEL_URL,
+    internal_fedora_image: str = INTERNAL_FEDORA_IMAGE,
     internal_ubuntu_image: str = INTERNAL_UBUNTU_IMAGE,
     internal_debian_image: str = INTERNAL_DEBIAN_IMAGE,
     internal_busybox_image: str = INTERNAL_BUSYBOX_IMAGE,
@@ -157,6 +162,7 @@ def oci_to_bootable(
 
         # Kernel source selection
         kernel_from_name=kernel_from_name,
+        kernel_from_fedora=kernel_from_fedora,
         kernel_from_ubuntu=kernel_from_ubuntu,
         kernel_from_debian=kernel_from_debian,
         kernel_from_source=kernel_from_source,
@@ -183,6 +189,7 @@ def oci_to_bootable(
 
         # Internal options
         internal_kernel_url=internal_kernel_url,
+        internal_fedora_image=internal_fedora_image,
         internal_ubuntu_image=internal_ubuntu_image,
         internal_debian_image=internal_debian_image,
         internal_busybox_image=internal_busybox_image,
