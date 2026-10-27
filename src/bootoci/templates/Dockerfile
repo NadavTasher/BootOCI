@@ -173,11 +173,11 @@ cd -P /bootoci/workdir
 
 {% if Env %}
 # Add environment variables
-export {{Env | join(" ")}}
+export {{Env | map("shlex") | join(" ")}}
 {% endif %}
 
 # Execute entrypoint with cmd
-exec {{((Entrypoint or []) + (Cmd or [])) | join(" ")}}
+exec {{((Entrypoint or []) + (Cmd or [])) | map("shlex") | join(" ")}}
 EOF
 {% endif %}
 

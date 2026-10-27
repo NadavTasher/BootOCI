@@ -1,5 +1,6 @@
 import os
 import json
+import shlex
 import hashlib
 import subprocess
 
@@ -129,9 +130,15 @@ def oci_to_bootable(
     # We need to extract the rootfs information from the tag
     rootfs_configuration = json.loads(subprocess.run(backend + ["inspect", "--format", "{{json .Config}}", rootfs_from_tag], capture_output=True, text=True, check=True).stdout)
 
+    # Create jinja2 environment
+    environment = jinja2.Environment()
+
+    # Add the shlex quote filter
+    environment.filters["shlex"] = shlex.quote
+
     # Create jinja2 template
     with open(os.path.join(os.path.dirname(__file__), "templates", "Dockerfile"), "r", encoding="utf-8") as dockerfile:
-        template = jinja2.Environment().from_string(dockerfile.read())
+        template = environment.from_string(dockerfile.read())
 
     # Render the template
     rendered_template = template.render(
