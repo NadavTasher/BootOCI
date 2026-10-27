@@ -64,6 +64,9 @@ bootoci -o ./bin/disk.img --docker --kernel-from-debian --tag postgres --dockerf
 ```bash
 # Build a fully-fledged ubuntu desktop machine
 python3 -m src.bootoci.cli --docker --kernel-from-debian -f ./examples/ubuntu-desktop.Dockerfile --size 4096 --serial --password "root:12345678" --password "user:12345678"
+
+# Build a test image
+python3 -m src.bootoci.cli --docker --kernel-from-debian -f ./examples/entrypoint.Dockerfile --size 1024 --password "root:12345678" --entrypoint
 ```
 
 ## Testing images
