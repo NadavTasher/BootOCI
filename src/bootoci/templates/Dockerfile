@@ -7,6 +7,9 @@
 {% if kernel_from_source %}
 FROM {{internal_debian_image}} AS kernel-from-source
 
+# For reproducible builds
+ENV SOURCE_DATE_EPOCH="{{source_date_epoch}}"
+
 # Install build dependencies
 RUN <<'EOF'
 # Exit on failure
@@ -243,6 +246,9 @@ EOF
 
 FROM builder AS build
 
+# For reproducible builds
+ENV SOURCE_DATE_EPOCH="{{source_date_epoch}}"
+
 # Change to build directory
 WORKDIR /build
 
@@ -255,7 +261,7 @@ set -e
 truncate --size "{{efi_size}}M" efi
 
 # Format the partition
-mkfs.vfat -F 32 efi
+mkfs.vfat --invariant -F 32 efi
 
 # Create EFI directories
 mmd -i efi ::/EFI ::/EFI/BOOT ::/boot ::/boot/grub
@@ -269,10 +275,10 @@ set timeout={% if boot_quiet %}0{% else %}5{% endif %}
 set default=0
 
 menuentry "BootOCI - {{rootfs_from_tag}}" {
-	# Where is our kernel?
-	linux /boot/vmlinuz {% if boot_cmdline %}{{boot_cmdline}}{% endif %} root=PARTUUID={{image_partuuid}} {% if boot_shell %}init=/bootoci/init{% endif %} {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %} {% if boot_quiet %}quiet{% endif %}
-
-	# Path to initrd
+	# Linux command line
+	linux /boot/vmlinuz {% if boot_cmdline %}{{boot_cmdline}}{% endif %} root=PARTUUID=22222222-2222-2222-2222-222222222222 {% if boot_shell %}init=/bootoci/init{% endif %} {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %} {% if boot_quiet %}quiet{% endif %}
+	
+	# Path to initial ramdisk
 	initrd /boot/initrd
 }
 CONFIGURATION
@@ -298,7 +304,7 @@ mcopy -i efi initrd ::/boot/initrd
 truncate --size "{{rootfs_size}}M" rootfs
 
 # Format the partition and copy files
-mkfs.ext4 -d /rootfs -F rootfs
+mkfs.ext4 -U 33333333-3333-3333-3333-333333333333 -E hash_seed=33333333-3333-3333-3333-333333333333 -d /rootfs -F rootfs
 EOF
 
 # Partition the disk
@@ -310,13 +316,13 @@ set -e
 truncate --size "{{image_size}}M" image
 
 # Create partition table
-sgdisk --zap-all --clear image
+sgdisk --zap-all --clear --disk-guid="00000000-0000-0000-0000-00000000000" image
 
 # Create EFI partition
-sgdisk --new="0:{{header_size}}M:+{{efi_size}}M" --typecode="0:ef00" image
+sgdisk --new="1:{{header_size}}M:+{{efi_size}}M" --typecode="1:ef00" --partition-guid="1:11111111-1111-1111-1111-111111111111" image
 
 # Create rootfs partition
-sgdisk --new="0:{{header_size + efi_size}}M:+{{rootfs_size}}M" --typecode="0:8300" --partition-guid="0:{{image_partuuid}}" image
+sgdisk --new="2:{{header_size + efi_size}}M:+{{rootfs_size}}M" --typecode="2:8300" --partition-guid="2:22222222-2222-2222-2222-222222222222" image
 
 # Move second header to end of image
 sgdisk --move-second-header image

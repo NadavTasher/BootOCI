@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import shlex
 import hashlib
 import subprocess
@@ -9,6 +10,9 @@ from typing import Optional
 
 # For template rendering
 import jinja2
+
+# Get source date epoch
+SOURCE_DATE_EPOCH = os.environ.get("SOURCE_DATE_EPOCH", int(time.time()))
 
 # Get internal defaults
 INTERNAL_KERNEL_URL = os.environ.get("BOOTOCI_KERNEL_URL", "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.13.tar.xz")
@@ -36,8 +40,8 @@ def oci_to_bootable(
     # Final image format
     image_format: Optional[str] = None,
 
-    # Partition UUID for rootfs
-    image_partuuid: str = "00000000-0000-0000-0000-000000000000",
+    # Should the build be deterministic
+    image_reproducible: bool = False,
 
     # Do we need to boot quietly?
     boot_quiet: bool = False,
@@ -103,6 +107,13 @@ def oci_to_bootable(
     internal_debian_image: str = INTERNAL_DEBIAN_IMAGE,
     internal_busybox_image: str = INTERNAL_BUSYBOX_IMAGE,
 ):
+    # Set the source date epoch from environment, default to current epoch
+    source_date_epoch = int(SOURCE_DATE_EPOCH)
+
+    # To make reproducible builds, reset source date epoch
+    if image_reproducible:
+        source_date_epoch = 0
+
     # Decide which backend we are using
     backend = ["false"]
 
@@ -181,15 +192,15 @@ def oci_to_bootable(
         # Final image format
         image_format=image_format,
 
-        # Partition PARTUUID
-        image_partuuid=image_partuuid,
-
         # Boot options
         boot_quiet=boot_quiet,
         boot_shell=boot_shell,
         boot_debug=boot_debug,
         boot_serial=boot_serial,
         boot_cmdline=boot_cmdline,
+
+        # Source date epoch
+        source_date_epoch=source_date_epoch,
 
         # Internal options
         internal_kernel_url=internal_kernel_url,

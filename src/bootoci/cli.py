@@ -41,14 +41,14 @@ def parse_arguments():
     init_group.add_argument("--init-is-login", "--login", action="store_true", help="Boot to login")
     init_group.add_argument("--init-is-entrypoint", "--entrypoint", action="store_true", help="Boot to image entrypoint")
 
-    # GUID for rootfs partition
-    parser.add_argument("--image-partuuid", "--partuuid", action="store", default="00000000-0000-0000-0000-000000000000", help="Partition identifier for rootfs")
-
     # Desired image size (affects rootfs size)
     parser.add_argument("--image-size", "--size", "-s", type=int, action="store", default=1024, help="Full image size in MB")
 
     # Desired image format
     parser.add_argument("--image-format", "--format", action="store", choices=["qcow2", "vmdk"], help="Convert output image from raw disk image to another format")
+
+    # Create reproducible builds
+    parser.add_argument("--image-reproducible", "--reproducible", action="store_true", help="Generate deterministic images")
 
     # Skip grub and suppress kernel output?
     parser.add_argument("--boot-quiet", "--quiet", action="store_true", help="Reduce boot time and suppress kernel output")
