@@ -234,7 +234,7 @@ done
 EOF
 {% endif %}
 
-FROM {{internal_debian_image}} AS image-builder
+FROM {{internal_debian_image}} AS builder
 
 # Install build dependencies
 RUN <<'EOF'
@@ -245,6 +245,8 @@ apt --option='Acquire::Check-Valid-Until=false' update
 apt install --yes gdisk dracut e2fsprogs mtools dosfstools grub-efi-amd64-bin grub-efi-amd64-signed qemu-utils --no-install-suggests --no-install-recommends
 rm -r /var/lib/apt/lists
 EOF
+
+FROM builder AS build
 
 # Change to build directory
 WORKDIR /build
@@ -345,4 +347,4 @@ EOF
 FROM scratch AS output
 
 # Copy the output ISO
-COPY --from=image-builder /build/image /{{output_filename}}
+COPY --from=build /build/image /{{output_filename}}
