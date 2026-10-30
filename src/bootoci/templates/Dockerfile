@@ -1,13 +1,8 @@
 # Partition sizes
-{%- set bios_size = 1 %}
-{%- set efi_size = 256 %}
-{%- set rootfs_size = image_size - efi_size - 16 %}
-
-# Calculate partition offsets
-{%- set block_multiplier = 1024 * 2 %}
-{%- set bios_offset = 1 * block_multiplier %}
-{%- set efi_offset = bios_offset + bios_size * block_multiplier %}
-{%- set rootfs_offset = efi_offset + efi_size * block_multiplier %}
+{%- set header_size = 2 %}
+{%- set footer_size = 1 %}
+{%- set efi_size = 128 %}
+{%- set rootfs_size = image_size - efi_size - header_size - footer_size %}
 
 {% if kernel_from_source %}
 FROM {{internal_debian_image}} AS kernel-from-source
@@ -317,23 +312,20 @@ truncate --size "{{image_size}}M" image
 # Create partition table
 sgdisk --zap-all --clear image
 
-# # Create BIOS partition
-# sgdisk --new="1:{{bios_offset}}:{{efi_offset - 1}}"	--typecode="1:ef02" image
-
 # Create EFI partition
-sgdisk --new="2:{{efi_offset}}:{{rootfs_offset - 1}}" --typecode="2:ef00" image
+sgdisk --new="0:{{header_size}}M:+{{efi_size}}M" --typecode="0:ef00" image
 
 # Create rootfs partition
-sgdisk --new="3:{{rootfs_offset}}:0" --typecode="3:8300" --partition-guid="3:{{image_partuuid}}" image
+sgdisk --new="0:{{header_size + efi_size}}M:+{{rootfs_size}}M" --typecode="0:8300" --partition-guid="0:{{image_partuuid}}" image
 
 # Move second header to end of image
 sgdisk --move-second-header image
 
 # Write EFI partition to image
-dd if=efi of=image conv=notrunc bs=512 "seek={{efi_offset}}"
+dd if=efi of=image conv=notrunc bs=1M "seek={{header_size}}"
 
 # Write rootfs partition to image
-dd if=rootfs of=image conv=notrunc bs=512 "seek={{rootfs_offset}}"
+dd if=rootfs of=image conv=notrunc bs=1M "seek={{header_size + efi_size}}"
 
 {% if image_format %}
 # Format image from raw to output format
