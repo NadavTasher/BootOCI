@@ -270,12 +270,12 @@ grub-mkimage --format x86_64-efi --prefix /boot/grub fat part_gpt linux normal |
 
 # Generate grub configuration and copy it into the EFI partition
 mcopy -i efi - ::/boot/grub/grub.cfg <<'CONFIGURATION'
-set timeout=5
+set timeout={% if boot_quiet %}0{% else %}5{% endif %}
 set default=0
 
 menuentry "BootOCI - {{rootfs_from_tag}}" {
 	# Where is our kernel?
-	linux /boot/vmlinuz {% if boot_cmdline %}{{boot_cmdline}}{% endif %} root=PARTUUID={{image_partuuid}} {% if boot_shell %}init=/bootoci/init{% endif %} {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %}
+	linux /boot/vmlinuz {% if boot_cmdline %}{{boot_cmdline}}{% endif %} root=PARTUUID={{image_partuuid}} {% if boot_shell %}init=/bootoci/init{% endif %} {% if boot_serial %}console=ttyS0,115200{% endif %} {% if boot_debug %}debug ignore_loglevel{% endif %} {% if boot_quiet %}quiet{% endif %}
 
 	# Path to initrd
 	initrd /boot/initrd

@@ -39,6 +39,9 @@ def oci_to_bootable(
     # Partition UUID for rootfs
     image_partuuid: str = "00000000-0000-0000-0000-000000000000",
 
+    # Do we need to boot quietly?
+    boot_quiet: bool = False,
+
     # Do we need a boot shell?
     boot_shell: bool = False,
 
@@ -182,6 +185,7 @@ def oci_to_bootable(
         image_partuuid=image_partuuid,
 
         # Boot options
+        boot_quiet=boot_quiet,
         boot_shell=boot_shell,
         boot_debug=boot_debug,
         boot_serial=boot_serial,

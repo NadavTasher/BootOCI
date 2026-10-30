@@ -50,8 +50,8 @@ def parse_arguments():
     # Desired image format
     parser.add_argument("--image-format", "--format", action="store", choices=["qcow2", "vmdk"], help="Convert output image from raw disk image to another format")
 
-    # Additional boot arguments
-    parser.add_argument("--boot-cmdline", "--cmdline", action="store", help="Additional kernel cmdline options")
+    # Skip grub and suppress kernel output?
+    parser.add_argument("--boot-quiet", "--quiet", action="store_true", help="Reduce boot time and suppress kernel output")
 
     # Pause boot with shell before rootfs?
     parser.add_argument("--boot-shell", "--pause", action="store_true", help="Pause the boot process before mounting rootfs")
@@ -61,6 +61,9 @@ def parse_arguments():
 
     # Use serial for kernel boot?
     parser.add_argument("--boot-serial", "--serial", action="store_true", help="Use serial for kernel boot")
+
+    # Additional boot arguments
+    parser.add_argument("--boot-cmdline", "--cmdline", action="store", help="Additional kernel cmdline options")
 
     # Change hostname in rootfs?
     parser.add_argument("--rootfs-hostname", "--hostname", action="store", help="Hostname for system")
